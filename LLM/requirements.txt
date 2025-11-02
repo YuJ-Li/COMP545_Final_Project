@@ -1,0 +1,6 @@
+torch           # we’ll install the CUDA wheel separately
+transformers>=4.43
+accelerate
+numpy
+pandas
+bitsandbytes>=0.43.0
