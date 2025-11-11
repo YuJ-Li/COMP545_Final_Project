@@ -18,9 +18,9 @@ import os
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from autoarima_wrapper import AutoARIMAModel
-from patchtst_wrapper import PatchTSTModel
-from evaluator import TimeSeriesEvaluator
+from Benchmarks.models.ets import ETSModel
+from models import AutoARIMAModel, PatchTSTModel  
+from evaluation import TimeSeriesEvaluator    
 
 
 def load_data(data_path: str) -> tuple:
@@ -113,6 +113,17 @@ def get_models(model_names, config):
                 e_layers=config.get('e_layers', 2),
                 device=config.get('device', 'cpu'),
                 name='PatchTST'
+            )
+            models.append(model)
+            
+        elif name_lower == 'ets':  # ← ADD THIS
+            model = ETSModel(
+                seasonal_periods=config.get('season_length', 1),
+                trend='add',
+                seasonal='add' if config.get('season_length', 1) > 1 else None,
+                damped_trend=False,
+                freq=config.get('freq', 'D'),
+                name='ETS'
             )
             models.append(model)
             

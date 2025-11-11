@@ -38,6 +38,8 @@ class PatchTSTModel(BaselineModel):
     Based on: "A Time Series is Worth 64 Words: Long-term Forecasting with Transformers"
     Paper: https://arxiv.org/abs/2211.14730
     Code: https://github.com/yuqinie98/PatchTST
+    
+    Note: PatchTST is a pure numerical model and does not use textual context.
     """
     
     def __init__(self,
@@ -237,7 +239,7 @@ class PatchTSTModel(BaselineModel):
         best_loss = float('inf')
         patience_counter = 0
         
-        n_batches = len(X_train) // batch_size
+        n_batches = max(1, len(X_train) // batch_size)
         
         for epoch in range(epochs):
             epoch_loss = 0
@@ -290,6 +292,7 @@ class PatchTSTModel(BaselineModel):
     def predict(self, 
                 history: Union[np.ndarray, pd.DataFrame],
                 horizon: int,
+                context: Optional[str] = None,  # ← ADDED THIS
                 quantiles: Optional[List[float]] = None) -> Dict[str, np.ndarray]:
         """
         Make predictions using trained PatchTST.
@@ -297,11 +300,20 @@ class PatchTSTModel(BaselineModel):
         Args:
             history: Input sequence (will use last seq_len points)
             horizon: Number of steps to predict (will be truncated/padded to pred_len)
+            context: Optional textual description (IGNORED by PatchTST)
             quantiles: Not supported by PatchTST (returns point forecasts only)
         
         Returns:
             Dictionary with 'mean' predictions
+        
+        Note:
+            PatchTST is a pure numerical deep learning model and does not use
+            textual context. The context parameter is ignored.
         """
+        # Context is ignored for pure numerical models
+        if context is not None:
+            pass  # Silently ignore context
+        
         if not self.is_fitted:
             raise ValueError("Model must be fitted before prediction. Call fit() first.")
         
@@ -409,11 +421,21 @@ if __name__ == "__main__":
         print("\nFitting model on 800 timesteps...")
         model.fit(y[:800], epochs=5, batch_size=32, verbose=True)
         
-        print("\nMaking predictions...")
+        print("\nMaking predictions WITHOUT context...")
         preds = model.predict(y[700:800], horizon=24, quantiles=[0.1, 0.5, 0.9])
         
         print(f"\nPrediction shape: {preds['mean'].shape}")
         print(f"First 5 predictions: {preds['mean'][:5]}")
+        
+        print("\nMaking predictions WITH context (should be identical)...")
+        preds_with_context = model.predict(
+            y[700:800], 
+            horizon=24, 
+            context="This is a sinusoidal pattern with noise",  # Ignored!
+            quantiles=[0.1, 0.5, 0.9]
+        )
+        
+        print(f"Predictions match: {np.allclose(preds['mean'], preds_with_context['mean'])}")
         print(f"Quantiles available: {list(preds['quantiles'].keys()) if 'quantiles' in preds else 'None'}")
     else:
         print("\nSkipping fit/predict tests (PatchTST not available)")

@@ -12,11 +12,13 @@ from pathlib import Path
 import json
 import time
 
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from base_model import TimeSeriesModel
-from metrics import compute_all_metrics
+from models.base_model import TimeSeriesModel  # ← Changed
+from .metrics import compute_all_metrics        # ← Changed
+
 
 
 class TimeSeriesEvaluator:
@@ -301,7 +303,7 @@ if __name__ == "__main__":
     
     # This would normally be your actual models
     # For demo, we'll create mock models
-    from base_model import TimeSeriesModel
+    from Benchmarks.models.base_model import TimeSeriesModel
     
     class MockModel(TimeSeriesModel):
         def __init__(self, name):

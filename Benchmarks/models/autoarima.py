@@ -1,7 +1,8 @@
 """
-AutoARIMA Wrapper
+AutoARIMA Model Wrapper for Unified Benchmarking
 
-Wraps statsforecast's AutoARIMA to conform to our unified interface.
+Uses statsforecast's AutoARIMA for automatic parameter selection
+and ARIMA for efficient forecasting.
 """
 
 import numpy as np
@@ -32,7 +33,7 @@ class AutoARIMAModel(BaselineModel):
                  name: str = "AutoARIMA"):
         """
         Args:
-            season_length: Seasonal period (e.g., 7 for weekly, 12 for monthly)
+            season_length: Seasonal period (e.g., 7 for weekly, 12 for monthly, 24 for hourly)
             freq: Pandas frequency string (e.g., 'D', 'H', 'M')
             name: Model name for identification
         """
@@ -126,6 +127,7 @@ class AutoARIMAModel(BaselineModel):
     def predict(self, 
                 history: Union[np.ndarray, pd.DataFrame],
                 horizon: int,
+                context: Optional[str] = None,  # ← ADDED THIS
                 quantiles: Optional[List[float]] = None) -> Dict[str, np.ndarray]:
         """
         Make predictions using fitted ARIMA model.
@@ -133,11 +135,20 @@ class AutoARIMAModel(BaselineModel):
         Args:
             history: Recent history to condition on
             horizon: Number of steps to forecast
+            context: Optional textual description (IGNORED by ARIMA)
             quantiles: List of quantiles to predict (e.g., [0.1, 0.5, 0.9])
         
         Returns:
             Dictionary with 'mean', 'median', and 'quantiles' (if requested)
+        
+        Note:
+            ARIMA is a statistical model and does not use textual context.
+            The context parameter is ignored.
         """
+        # Context is ignored for statistical models
+        if context is not None:
+            pass  # Silently ignore context for traditional models
+        
         if not self.is_fitted:
             raise ValueError("Model must be fitted before prediction. Call fit() first.")
         
@@ -212,7 +223,7 @@ class AutoARIMAModel(BaselineModel):
         return f"{self.name}{params_str}"
 
 
-# Example usage
+# Example usage and testing
 if __name__ == "__main__":
     # Generate synthetic data
     np.random.seed(42)
@@ -227,15 +238,27 @@ if __name__ == "__main__":
     model = AutoARIMAModel(season_length=12, freq='M')
     model.fit(train_y)
     
-    # Make predictions
-    history = train_y[-30:]  # Use last 30 points as context
+    # Make predictions WITHOUT context (traditional usage)
+    history = train_y[-30:]
     preds = model.predict(history, horizon=10, quantiles=[0.1, 0.5, 0.9])
     
-    print("\nPredictions:")
+    print("\nPredictions without context:")
     print(f"Mean: {preds['mean'][:5]}")
     print(f"Median: {preds['median'][:5]}")
     print(f"Q10: {preds['quantiles'][0.1][:5]}")
     print(f"Q90: {preds['quantiles'][0.9][:5]}")
+    
+    # Make predictions WITH context (should produce same results)
+    preds_with_context = model.predict(
+        history, 
+        horizon=10, 
+        context="This is monthly data with seasonal pattern",  # Ignored!
+        quantiles=[0.1, 0.5, 0.9]
+    )
+    
+    print("\nPredictions with context (should be identical):")
+    print(f"Mean: {preds_with_context['mean'][:5]}")
+    print(f"Predictions match: {np.allclose(preds['mean'], preds_with_context['mean'])}")
     
     # Test rolling predictions
     print("\n\nRolling window predictions:")
