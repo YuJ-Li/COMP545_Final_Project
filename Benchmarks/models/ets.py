@@ -18,7 +18,7 @@ except ImportError:
     STATSMODELS_AVAILABLE = False
     print("Warning: statsmodels not installed. Install with: pip install statsmodels")
 
-from .base_model import BaselineModel
+from models.base_model import BaselineModel
 
 
 class ETSModel(BaselineModel):
@@ -246,7 +246,12 @@ class ETSModel(BaselineModel):
             print(f"Warning: Prediction failed with error: {e}")
             # Fallback: return last value repeated
             if hasattr(self.fitted_model, 'fittedvalues'):
-                last_value = self.fitted_model.fittedvalues.iloc[-1]
+                fittedvalues = self.fitted_model.fittedvalues
+                # Handle both numpy array and pandas Series
+                if isinstance(fittedvalues, np.ndarray):
+                    last_value = fittedvalues[-1]
+                else:
+                    last_value = fittedvalues.iloc[-1]
             else:
                 last_value = 0.0
             

@@ -2,18 +2,32 @@
 Quick test of AutoARIMA model
 """
 
-from single_tests import print_test_header, generate_synthetic_data
+import sys
+import os
+# Add parent directory to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from models.autoarima import AutoARIMAModel
 from evaluation.metrics import mae, rmse, mase
 import matplotlib.pyplot as plt
 import numpy as np
 
-print_test_header("Testing AutoARIMA Model")
+print("="*60)
+print("Testing AutoARIMA Model")
+print("="*60)
 
-# Generate synthetic data using utility
-y = generate_synthetic_data(n=500, seasonal_period=50, seed=42)
+# Generate synthetic data
+np.random.seed(42)
+n = 500
+t = np.arange(n)
 
-print(f"Generated {len(y)} points with trend and seasonality")
+# Components
+trend = 0.05 * t
+seasonal = 10 * np.sin(2 * np.pi * t / 50)
+noise = 2 * np.random.randn(n)
+y = 100 + trend + seasonal + noise
+
+print(f"\nGenerated {n} points with trend and seasonality")
 
 # Split train/test
 train_size = 400
@@ -80,8 +94,8 @@ plt.title('AutoARIMA Test: Synthetic Data')
 plt.legend()
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
-plt.savefig('single_tests/autoarima_test.png', dpi=150)
-print("\n✓ Plot saved as 'single_tests/autoarima_test.png'")
+plt.savefig('autoarima_test.png', dpi=150)
+print("\n✓ Plot saved as 'autoarima_test.png'")
 
 print("\n" + "="*60)
 print("✓ AutoARIMA test complete!")

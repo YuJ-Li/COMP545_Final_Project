@@ -16,19 +16,21 @@ import os
 from pathlib import Path
 import argparse
 
-# Add PatchTST to path
-PATCHTST_PATH = Path(__file__).parent / 'patchtst' / 'PatchTST_supervised'
+# Add PatchTST to path - FIXED PATH
+# Since this file is in Benchmarks/models/, we need to go up one level, then into patchtst
+PATCHTST_PATH = Path(__file__).parent.parent / 'patchtst' / 'PatchTST_supervised'
 sys.path.insert(0, str(PATCHTST_PATH))
 
 try:
     from models.PatchTST import Model as PatchTSTModel_Official
     from layers.PatchTST_backbone import PatchTST_backbone
     PATCHTST_AVAILABLE = True
-except ImportError:
-    print("Warning: PatchTST model not found. Using placeholder.")
+except ImportError as e:
+    print(f"Warning: PatchTST model not found. Error: {e}")
+    print(f"Looking in: {PATCHTST_PATH}")
     PATCHTST_AVAILABLE = False
 
-from base_model import BaselineModel
+from base_model import BaselineModel  # Changed import path
 
 
 class PatchTSTModel(BaselineModel):
@@ -66,22 +68,22 @@ class PatchTSTModel(BaselineModel):
         Initialize PatchTST model with official implementation.
         
         Args:
-            seq_len: Length of input sequence
-            pred_len: Length of prediction
-            patch_len: Length of each patch (subseries)
-            stride: Stride for patching
-            d_model: Dimension of model
+            seq_len: Length of input sequence (how much history to use)
+            pred_len: Length of prediction (forecast horizon)
+            patch_len: Length of each patch (subseries) - like "words" in NLP
+            stride: Stride for patching (overlap between patches)
+            d_model: Dimension of model (embedding size)
             n_heads: Number of attention heads
-            e_layers: Number of encoder layers
+            e_layers: Number of encoder layers (depth)
             d_ff: Dimension of feedforward network
-            dropout: Dropout rate
+            dropout: Dropout rate for regularization
             fc_dropout: Fully connected layer dropout
             head_dropout: Prediction head dropout
-            individual: Use individual heads for each variate
-            revin: Use Reversible Instance Normalization
+            individual: Use individual heads for each variate (for multivariate)
+            revin: Use Reversible Instance Normalization (helps with distribution shift)
             affine: Use affine transformation in RevIN
             subtract_last: Subtract last value (alternative normalization)
-            decomposition: Use series decomposition
+            decomposition: Use series decomposition (trend/seasonal)
             kernel_size: Kernel size for decomposition
             device: 'cpu' or 'cuda'
         """
@@ -292,7 +294,7 @@ class PatchTSTModel(BaselineModel):
     def predict(self, 
                 history: Union[np.ndarray, pd.DataFrame],
                 horizon: int,
-                context: Optional[str] = None,  # ← ADDED THIS
+                context: Optional[str] = None,
                 quantiles: Optional[List[float]] = None) -> Dict[str, np.ndarray]:
         """
         Make predictions using trained PatchTST.
@@ -394,6 +396,11 @@ class PatchTSTModel(BaselineModel):
 if __name__ == "__main__":
     print("PatchTST Wrapper - Official Repo Integration")
     print("=" * 60)
+    
+    # Debug path
+    print(f"Script location: {Path(__file__).parent}")
+    print(f"Looking for PatchTST at: {PATCHTST_PATH}")
+    print(f"Path exists: {PATCHTST_PATH.exists()}")
     
     if PATCHTST_AVAILABLE:
         print("✓ PatchTST model successfully imported!")
