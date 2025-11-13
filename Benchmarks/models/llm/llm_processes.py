@@ -1,106 +1,55 @@
 # models/llm/llm_processes.py
-"""
-LLMPForecaster — step-by-step LLM forecaster (DELTA mode) with robust numeric parsing.
-
-Goals:
-  • No straight line: predict deltas each step, then accumulate (y_next = last + delta).
-  • No sudden drops/spikes: strict BEGIN/END parsing, reject outliers, average a few samples,
-    and soft-clip only *accepted* deltas to a wide band of recent volatility.
-
-Compatible with your existing runner and DirectPrompt.
-"""
-
-from __future__ import annotations
+# LEVEL-MODE: predict the next VALUE directly (no deltas). Autoregressive over H steps.
 
 import re
-import math
-from typing import List, Tuple
-
 import numpy as np
 from transformers import pipeline
 
-# ----------------------------- parsing utils -----------------------------
 
-_NUM_LINE = r"^\s*[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?\s*$"
-
-def _parse_number_line_block(text: str) -> float | None:
-    """Return the first line that is JUST a number between BEGIN and END."""
-    start = text.find("BEGIN")
-    if start != -1:
-        text = text[start + len("BEGIN") :]
-    end = text.find("END")
-    if end != -1:
-        text = text[:end]
-    for line in text.splitlines():
-        s = line.strip().replace("\u2212", "-")  # normalize unicode minus
-        if re.match(_NUM_LINE, s):
-            try:
-                return float(s)
-            except Exception:
-                pass
+def _extract_first_value_tag(text: str):
+    """
+    Extract a single float between <VALUE> and </VALUE>, ignoring any text after </VALUE>.
+    """
+    if not text:
+        return None
+    # normalize unicode minus; cut at first closing tag to avoid trailing echo
+    text = text.replace("\u2212", "-")
+    cut = text.split("</VALUE>", 1)[0]
+    m = re.search(
+        r"<VALUE>\s*([-+]?(?:\d+(?:\.\d+)?|\.\d+)(?:[eE][-+]?\d+)?)",
+        cut,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if m:
+        try:
+            return float(m.group(1))
+        except Exception:
+            return None
     return None
 
-def _extract_floats(text: str, k: int = 8) -> List[float]:
-    """Fallback numeric extractor: first k floats/ints found."""
+
+def _extract_floats_anywhere(text: str, k: int = 3):
+    """Fallback: up to k float-like numbers from text."""
+    if not text:
+        return []
     text = text.replace("\u2212", "-")
-    toks = re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", text)
-    vals: List[float] = []
-    for t in toks:
+    nums = re.findall(r"[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?", text)
+    out = []
+    for n in nums:
         try:
-            vals.append(float(t))
+            out.append(float(n))
         except Exception:
             continue
-        if len(vals) >= k:
+        if len(out) >= k:
             break
-    return vals
+    return out
 
-# ----------------------------- scale & checks -----------------------------
-
-def _recent_scale(levels: List[float], k: int = 10) -> float:
-    """
-    Volatility proxy: std of recent deltas over last k points.
-    Never below 1e-6 to avoid zero bands.
-    """
-    if len(levels) >= k:
-        recent = np.diff(levels[-k:], prepend=levels[-k])
-        s = float(np.std(recent))
-        return s if s > 1e-6 else 1.0
-    return 1.0
-
-def _is_year_like(x: float, lo: int = 1900, hi: int = 2100) -> bool:
-    return float(x).is_integer() and lo <= x <= hi
-
-def _accept_delta(d: float, scale: float, sigma: float = 6.0) -> bool:
-    """Accept if |delta| within sigma * scale."""
-    return np.isfinite(d) and abs(d) <= sigma * max(scale, 1e-6)
-
-# ----------------------------- prompts -----------------------------------
-
-def _format_step_prompt(hist_times, hist_vals, next_time) -> str:
-    """
-    DELTA mode: ask for the change (delta = next_value - last_value).
-    """
-    hist = "\n".join(f"{t}: {v:.6g}" for t, v in zip(hist_times, hist_vals))
-    return (
-        "You are a careful time-series forecaster.\n"
-        "Task: Predict the CHANGE (delta) for the next timestamp, where:\n"
-        "  delta = next_value - last_value\n"
-        "Return ONLY the delta (a single real number). "
-        "Print it on its own line between BEGIN and END.\n\n"
-        f"History (time: value):\n{hist}\n\n"
-        f"Next timestamp: {next_time}\n\nBEGIN\n"
-    )
-
-# ----------------------------- main class --------------------------------
 
 class LLMPForecaster:
     """
-    Autoregressive (step-by-step) LLM forecaster in DELTA mode.
-
-    • Each step generates a delta; next value = last + delta.
-    • Strict number-only parsing between BEGIN/END.
-    • Rejects year-like echoes and outliers; averages a few plausible samples.
-    • Soft clip only *after* acceptance (wide band), else fallback to 0 delta.
+    Autoregressive LLM forecaster (LEVEL mode).
+    Each step asks the model for the next VALUE (not a delta), parses one number,
+    and uses it as the prediction for that timestamp.
     """
 
     def __init__(self, model_id: str, use_context: bool = True, dry_run: bool = False):
@@ -112,75 +61,101 @@ class LLMPForecaster:
             self._pipe = pipeline(
                 "text-generation",
                 model=model_id,
-                torch_dtype="auto",
                 device_map="auto",
+                torch_dtype="auto",
             )
 
-    def __call__(self, task, n_samples: int = 1) -> Tuple[np.ndarray, dict]:
+    # ---------- prompt ----------
+
+    def _format_step_prompt(self, hist_times, hist_vals, next_time) -> str:
+        """
+        Ask for the NEXT VALUE directly and force a single number between <VALUE> tags.
+        Include a tiny few-shot to bias the model to the exact format and to discourage exact copying.
+        """
+        # provide enough context to infer local trend; last 40 points
+        nctx = 40
+        hist = "\n".join(f"{t}: {v:.6g}" for t, v in zip(hist_times[-nctx:], hist_vals[-nctx:]))
+
+        return (
+            "You are a precise numerical forecaster.\n"
+            "Task: Predict the NEXT value for the given time series.\n"
+            "Output ONLY one number between <VALUE> and </VALUE>. "
+            "No words, no code, no extra text outside the tags.\n"
+            "Do NOT simply repeat the last value unless the series is perfectly flat.\n\n"
+            "Example:\n"
+            "History (time: value):\n"
+            "2024-01-01: 100\n"
+            "2024-01-02: 101.2\n"
+            "2024-01-03: 101.0\n"
+            "Next timestamp: 2024-01-04\n"
+            "<VALUE>\n"
+            "101.08\n"                  # different from 101.0 to teach 'don't copy last'
+            "</VALUE>\n\n"
+            "History (time: value):\n"
+            f"{hist}\n"
+            f"Next timestamp: {next_time}\n"
+            "<VALUE>\n"
+        )
+
+    # ---------- main ----------
+
+    def __call__(self, task, n_samples: int = 1):
+        """
+        Returns (preds, info) with preds.shape == (1, H)
+        """
         past_df = task.past_time
-        fut_df  = task.future_time
+        fut_df = task.future_time
 
         past_times = list(past_df.index)
-        seq        = list(map(float, past_df["y"].values))  # growing levels
-        fut_times  = list(fut_df.index)
-        H          = len(fut_times)
+        fut_times = list(fut_df.index)
+        seq = list(map(float, past_df["y"].values))  # known history (grows with predictions)
+        H = len(fut_times)
 
         if self._pipe is None:
-            # deterministic stub: repeat-last
+            # dry-run or no model: just repeat last value
             baseline = float(seq[-1]) if seq else 0.0
-            return np.full((1, H), baseline, dtype=float), {"backend": "llmp_stub"}
+            return np.full((1, H), baseline, dtype=float), {"backend": "llmp_level_stub"}
 
-        info = {"backend": "llmp_delta_step"}
+        preds = []
 
         for h in range(H):
-            last = seq[-1]
-            scale = _recent_scale(seq, k=10)
+            prompt = self._format_step_prompt(past_times, seq, fut_times[h])
 
-            accepted: List[float] = []
-            try:
-                # Two attempts with small batches to keep it fast but not brittle
-                attempts = [
-                    dict(max_new_tokens=20, do_sample=True, temperature=0.7, top_p=0.9, num_return_sequences=3),
-                    dict(max_new_tokens=28, do_sample=True, temperature=0.6, top_p=0.9, num_return_sequences=3),
-                ]
-                for gen in attempts:
-                    prompt = _format_step_prompt(past_times, seq, fut_times[h]) + "END\n"
-                    out = self._pipe(prompt, return_full_text=False, **gen)  # list of dicts
+            # Mild sampling + repetition penalty to avoid trivial copying of last token value,
+            # and average a few samples per step for stability.
+            generations = self._pipe(
+                prompt,
+                return_full_text=False,
+                do_sample=True,
+                temperature=0.4,        # mild randomness; prevents greedy copy
+                top_p=0.95,
+                top_k=50,
+                repetition_penalty=1.05,
+                max_new_tokens=16,      # number + closing tag
+                min_new_tokens=1,       # force at least something
+                num_return_sequences=3, # we will average
+            )
 
-                    for o in out:
-                        txt = o["generated_text"]
-                        # 1) strict parse
-                        v = _parse_number_line_block(txt)
-                        # 2) fallback: take first plausible float
-                        if v is None:
-                            floats = _extract_floats(txt, k=6)
-                            # filter out years; in delta mode prefer small magnitude
-                            floats = [f for f in floats if not _is_year_like(f)]
-                            if floats:
-                                # choose the one closest to zero (delta should be small)
-                                v = min(floats, key=lambda x: abs(x))
+            vals = []
+            for i, o in enumerate(generations):
+                txt = o["generated_text"]
+                v = _extract_first_value_tag(txt)
+                if v is None:
+                    floats = _extract_floats_anywhere(txt, k=1)
+                    v = floats[0] if floats else None
+                if v is not None and np.isfinite(v):
+                    vals.append(float(v))
 
-                        # validate as a delta
-                        if v is not None and _accept_delta(v, scale, sigma=6.0):
-                            accepted.append(float(v))
-
-                    if accepted:
-                        break  # we have some plausible deltas; stop attempts
-
-            except Exception as e:
-                print(f"[LLMP step {h}] warning: {e} — using fallback (delta=0).")
-
-            # decide delta
-            if accepted:
-                delta = float(np.mean(accepted))
-                # very soft post-accept clip (safety only)
-                delta = float(np.clip(delta, -6.0 * scale, 6.0 * scale))
+            if not vals:
+                # last resort: repeat last value (change this if you prefer a different fallback)
+                yhat = seq[-1] if seq else 0.0
             else:
-                delta = 0.0  # fallback = no change for this step
+                # mean over parsed candidates; median is also fine
+                yhat = float(np.mean(vals))
 
-            yhat = last + delta
-            seq.append(yhat)
-            past_times.append(fut_times[h])
+            preds.append(yhat)
+            seq.append(yhat)                 # becomes context for next step
+            past_times.append(fut_times[h])  # advance the timeline
 
-        preds = np.array(seq[-H:], dtype=float).reshape(1, H)
-        return preds, info
+        preds = np.array(preds, dtype=float).reshape(1, H)
+        return preds, {"backend": "llmp_level_step_sampling"}
