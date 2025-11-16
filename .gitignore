@@ -52,4 +52,34 @@ huggingface/
 
 # ---- Notebooks ----
 .ipynb_checkpoints/
+# Large data files
+data/traffic_data/
+data/electricity_hourly/
+*.csv
 
+# But keep essential datasets
+!datasets/*.csv
+!results/*.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Model files (too large for GitHub)
+*.bin
+*.safetensors
+*.pt
+*.pth
+
+# Results plots
+*.png
+!datasets/plots/*.png
