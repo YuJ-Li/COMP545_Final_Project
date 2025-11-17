@@ -2,6 +2,11 @@
 Baseline Model Evaluation Script - Day 3
 Runs AutoARIMA and ETS on all 50 CiK tasks and computes numeric oracle
 
+Metrics:
+- MAE (Mean Absolute Error) - absolute scale
+- nMAE (Normalized MAE) - scale-independent
+- DA (Directional Accuracy) - trend prediction accuracy
+
 Usage:
     python run_baseline_evaluation.py
 """
@@ -26,6 +31,66 @@ from models.ets import ETSModel
 def mean_absolute_error(y_true, y_pred):
     """Compute Mean Absolute Error"""
     return np.mean(np.abs(y_true - y_pred))
+
+
+def normalized_mae(y_true, y_pred):
+    """
+    Compute Normalized MAE
+    
+    nMAE = MAE / mean(|actual|)
+    
+    Normalizes MAE by the scale of the data, enabling fair comparison
+    across domains with different scales. More robust than MAPE as it
+    avoids division by individual zero values.
+    """
+    mean_actual = np.mean(np.abs(y_true))
+    if mean_actual == 0:
+        return np.nan
+    
+    mae = mean_absolute_error(y_true, y_pred)
+    return mae / mean_actual
+
+
+def directional_accuracy(y_true, y_pred, last_value):
+    """
+    Compute Directional Accuracy
+    
+    Measures if forecast correctly predicts direction of change
+    compared to the last observed value
+    
+    Parameters:
+    -----------
+    y_true : np.array
+        Actual future values
+    y_pred : np.array
+        Predicted future values
+    last_value : float
+        Last value in history (reference point)
+    
+    Returns:
+    --------
+    da : float
+        Directional accuracy (0 to 1)
+    """
+    if len(y_true) == 0 or len(y_pred) == 0:
+        return np.nan
+    
+    # Direction of actual change from last value
+    actual_direction = np.sign(y_true - last_value)
+    
+    # Direction of predicted change from last value
+    pred_direction = np.sign(y_pred - last_value)
+    
+    # Count correct directions (ignoring cases where actual change is 0)
+    non_zero_mask = actual_direction != 0
+    
+    if non_zero_mask.sum() == 0:
+        return np.nan  # All values same as last_value
+    
+    correct = (actual_direction[non_zero_mask] == pred_direction[non_zero_mask]).sum()
+    total = non_zero_mask.sum()
+    
+    return correct / total
 
 
 def load_dataset():
@@ -53,9 +118,9 @@ def load_dataset():
     ts_df['history'] = ts_df['history'].apply(np.array)
     ts_df['future'] = ts_df['future'].apply(np.array)
     
-    print(f"\nDataset breakdown by type:")
+    print(f"\nDataset breakdown by domain:")
     if 'domain' in ts_df.columns:
-        print(ts_df['domain'].value_counts())
+        print(ts_df['domain'].value_counts().sort_index())
     elif 'type' in ts_df.columns:
         print(ts_df['type'].value_counts())
     else:
@@ -70,7 +135,7 @@ def run_model_on_task(model, task_id, history, future, context=None):
     Run a single model on a single task
     
     Returns:
-        dict with predictions, actual, mae, and status
+        dict with predictions, actual, metrics (MAE, nMAE, DA), and status
     """
     try:
         # Fit the model
@@ -83,14 +148,21 @@ def run_model_on_task(model, task_id, history, future, context=None):
         # Extract mean prediction
         pred_mean = predictions['mean']
         
-        # Compute MAE
+        # Compute metrics
         mae = mean_absolute_error(future, pred_mean)
+        nmae = normalized_mae(future, pred_mean)
+        
+        # Compute Directional Accuracy
+        last_value = history[-1]
+        da = directional_accuracy(future, pred_mean, last_value)
         
         return {
             'task_id': task_id,
             'predictions': pred_mean,
             'actual': future,
             'mae': mae,
+            'nmae': nmae,
+            'da': da,
             'status': 'success'
         }
     
@@ -101,6 +173,8 @@ def run_model_on_task(model, task_id, history, future, context=None):
             'predictions': None,
             'actual': future,
             'mae': np.nan,
+            'nmae': np.nan,
+            'da': np.nan,
             'status': f'error: {str(e)[:100]}'
         }
 
@@ -130,6 +204,8 @@ def run_autoarima_evaluation(ts_df):
         {
             'task_id': r['task_id'],
             'mae': r['mae'],
+            'nmae': r['nmae'],
+            'da': r['da'],
             'status': r['status'],
             'horizon': len(r['actual'])
         }
@@ -142,9 +218,10 @@ def run_autoarima_evaluation(ts_df):
     print(f"  Total tasks: {len(results_df)}")
     print(f"  Successful: {(results_df['status'] == 'success').sum()}")
     print(f"  Failed: {(results_df['status'] != 'success').sum()}")
-    print(f"  Mean MAE: {results_df['mae'].mean():.4f}")
-    print(f"  Median MAE: {results_df['mae'].median():.4f}")
-    print(f"  Std MAE: {results_df['mae'].std():.4f}")
+    print(f"\n  Metrics (mean ± std):")
+    print(f"    MAE:   {results_df['mae'].mean():8.2f} ± {results_df['mae'].std():6.2f}")
+    print(f"    nMAE:  {results_df['nmae'].mean():8.4f} ± {results_df['nmae'].std():6.4f}")
+    print(f"    DA:    {results_df['da'].mean():8.4f} ± {results_df['da'].std():6.4f}")
     print(f"{'='*80}\n")
     
     return results_df
@@ -164,7 +241,6 @@ def run_ets_evaluation(ts_df):
         future = row['future']
         
         # Create fresh model for each task
-        # Use simple additive trend/seasonal for stability
         model = ETSModel(
             seasonal_periods=1,
             trend='add',
@@ -183,6 +259,8 @@ def run_ets_evaluation(ts_df):
         {
             'task_id': r['task_id'],
             'mae': r['mae'],
+            'nmae': r['nmae'],
+            'da': r['da'],
             'status': r['status'],
             'horizon': len(r['actual'])
         }
@@ -195,9 +273,10 @@ def run_ets_evaluation(ts_df):
     print(f"  Total tasks: {len(results_df)}")
     print(f"  Successful: {(results_df['status'] == 'success').sum()}")
     print(f"  Failed: {(results_df['status'] != 'success').sum()}")
-    print(f"  Mean MAE: {results_df['mae'].mean():.4f}")
-    print(f"  Median MAE: {results_df['mae'].median():.4f}")
-    print(f"  Std MAE: {results_df['mae'].std():.4f}")
+    print(f"\n  Metrics (mean ± std):")
+    print(f"    MAE:   {results_df['mae'].mean():8.2f} ± {results_df['mae'].std():6.2f}")
+    print(f"    nMAE:  {results_df['nmae'].mean():8.4f} ± {results_df['nmae'].std():6.4f}")
+    print(f"    DA:    {results_df['da'].mean():8.4f} ± {results_df['da'].std():6.4f}")
     print(f"{'='*80}\n")
     
     return results_df
@@ -221,13 +300,25 @@ def compute_numeric_oracle(arima_results, ets_results):
     merged['oracle_model'] = merged[['mae_arima', 'mae_ets']].idxmin(axis=1)
     merged['oracle_model'] = merged['oracle_model'].str.replace('mae_', '')
     
-    oracle_df = merged[['task_id', 'oracle_mae', 'oracle_model']]
+    # Get all metrics for the oracle model (from whichever model had best MAE)
+    merged['oracle_nmae'] = merged.apply(
+        lambda row: row['nmae_arima'] if row['oracle_model'] == 'arima' else row['nmae_ets'],
+        axis=1
+    )
+    merged['oracle_da'] = merged.apply(
+        lambda row: row['da_arima'] if row['oracle_model'] == 'arima' else row['da_ets'],
+        axis=1
+    )
+    
+    oracle_df = merged[['task_id', 'oracle_mae', 'oracle_nmae', 'oracle_da', 'oracle_model']]
     
     # Print summary
     print(f"\nNumeric Oracle Summary:")
-    print(f"  Mean Oracle MAE: {oracle_df['oracle_mae'].mean():.4f}")
-    print(f"  Median Oracle MAE: {oracle_df['oracle_mae'].median():.4f}")
-    print(f"\nBest model distribution:")
+    print(f"  Metrics (mean ± std):")
+    print(f"    MAE:   {oracle_df['oracle_mae'].mean():8.2f} ± {oracle_df['oracle_mae'].std():6.2f}")
+    print(f"    nMAE:  {oracle_df['oracle_nmae'].mean():8.4f} ± {oracle_df['oracle_nmae'].std():6.4f}")
+    print(f"    DA:    {oracle_df['oracle_da'].mean():8.4f} ± {oracle_df['oracle_da'].std():6.4f}")
+    print(f"\n  Best model distribution:")
     print(oracle_df['oracle_model'].value_counts())
     print(f"{'='*80}\n")
     
@@ -257,14 +348,26 @@ def save_results(arima_results, ets_results, oracle_results):
     oracle_results.to_csv(oracle_path, index=False)
     print(f"✓ Saved Numeric Oracle to {oracle_path}")
     
-    # Save combined results
-    combined = arima_results[['task_id', 'mae']].rename(columns={'mae': 'mae_arima'})
+    # Save combined results with all metrics
+    combined = arima_results[['task_id', 'mae', 'nmae', 'da']].rename(
+        columns={
+            'mae': 'mae_arima',
+            'nmae': 'nmae_arima',
+            'da': 'da_arima'
+        }
+    )
     combined = combined.merge(
-        ets_results[['task_id', 'mae']].rename(columns={'mae': 'mae_ets'}),
+        ets_results[['task_id', 'mae', 'nmae', 'da']].rename(
+            columns={
+                'mae': 'mae_ets',
+                'nmae': 'nmae_ets',
+                'da': 'da_ets'
+            }
+        ),
         on='task_id'
     )
     combined = combined.merge(
-        oracle_results[['task_id', 'oracle_mae', 'oracle_model']],
+        oracle_results[['task_id', 'oracle_mae', 'oracle_nmae', 'oracle_da', 'oracle_model']],
         on='task_id'
     )
     
@@ -275,6 +378,47 @@ def save_results(arima_results, ets_results, oracle_results):
     print(f"{'='*80}\n")
 
 
+def analyze_by_domain(results_dir):
+    """Analyze results by domain to understand scale effects"""
+    print("=" * 80)
+    print("DOMAIN-LEVEL ANALYSIS")
+    print("=" * 80)
+    
+    try:
+        # Load results and metadata
+        combined = pd.read_csv(results_dir / "baseline_comparison.csv")
+        metadata = pd.read_csv(Path(__file__).parent / "datasets" / "task_metadata.csv")
+        
+        # Merge with domain info
+        if 'domain' in metadata.columns:
+            merged = combined.merge(
+                metadata[['id', 'domain', 'mean', 'std']], 
+                left_on='task_id', 
+                right_on='id'
+            )
+            
+            # Group by domain
+            domain_stats = merged.groupby('domain').agg({
+                'mae_arima': 'mean',
+                'nmae_arima': 'mean',
+                'da_arima': 'mean',
+                'mean': 'mean',
+                'std': 'mean'
+            }).round(4)
+            
+            domain_stats = domain_stats.sort_values('mae_arima', ascending=False)
+            
+            print("\nMetrics by Domain (sorted by MAE):")
+            print("="*80)
+            print(domain_stats.to_string())
+            print("\n✓ High MAE domains likely have large-scale values")
+            print("✓ nMAE normalizes these differences - compare nMAE across domains!")
+            print(f"{'='*80}\n")
+            
+    except Exception as e:
+        print(f"Could not perform domain analysis: {e}\n")
+
+
 def main():
     """Main evaluation pipeline"""
     print("\n")
@@ -282,6 +426,7 @@ def main():
     print("#" + " " * 78 + "#")
     print("#" + "  BASELINE MODEL EVALUATION - DAY 3".center(78) + "#")
     print("#" + "  AutoARIMA & ETS on 50 CiK Tasks".center(78) + "#")
+    print("#" + "  Metrics: MAE, nMAE, DA".center(78) + "#")
     print("#" + " " * 78 + "#")
     print("#" * 80)
     print(f"\nStarted at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -300,29 +445,51 @@ def main():
     oracle_results = compute_numeric_oracle(arima_results, ets_results)
     
     # Save all results
+    results_dir = Path(__file__).parent / "results"
     save_results(arima_results, ets_results, oracle_results)
     
-    # Final summary
+    # Analyze by domain
+    analyze_by_domain(results_dir)
+    
+    # Final summary table
     print("=" * 80)
     print("FINAL SUMMARY")
     print("=" * 80)
-    print(f"{'Model':<20} {'Mean MAE':<15} {'Median MAE':<15} {'Success Rate':<15}")
+    print(f"\n{'Model':<20} {'MAE':<15} {'nMAE':<15} {'DA':<15}")
     print("-" * 80)
     
     arima_success = (arima_results['status'] == 'success').mean() * 100
     ets_success = (ets_results['status'] == 'success').mean() * 100
     
-    print(f"{'AutoARIMA':<20} {arima_results['mae'].mean():<15.4f} "
-          f"{arima_results['mae'].median():<15.4f} {arima_success:<15.1f}%")
-    print(f"{'ETS':<20} {ets_results['mae'].mean():<15.4f} "
-          f"{ets_results['mae'].median():<15.4f} {ets_success:<15.1f}%")
-    print(f"{'Numeric Oracle':<20} {oracle_results['oracle_mae'].mean():<15.4f} "
-          f"{oracle_results['oracle_mae'].median():<15.4f} {'100.0':<15}%")
+    print(f"{'AutoARIMA':<20} "
+          f"{arima_results['mae'].mean():<15.2f} "
+          f"{arima_results['nmae'].mean():<15.4f} "
+          f"{arima_results['da'].mean():<15.4f}")
+    
+    print(f"{'ETS':<20} "
+          f"{ets_results['mae'].mean():<15.2f} "
+          f"{ets_results['nmae'].mean():<15.4f} "
+          f"{ets_results['da'].mean():<15.4f}")
+    
+    print(f"{'Numeric Oracle':<20} "
+          f"{oracle_results['oracle_mae'].mean():<15.2f} "
+          f"{oracle_results['oracle_nmae'].mean():<15.4f} "
+          f"{oracle_results['oracle_da'].mean():<15.4f}")
+    
     print("=" * 80)
     
+    print(f"\n💡 METRICS EXPLAINED:")
+    print(f"   MAE:  Absolute error - shows real-world impact")
+    print(f"   nMAE: Normalized error - enables cross-domain comparison")
+    print(f"   DA:   Directional accuracy - trend prediction correctness")
+    
+    print(f"\n✓ Success rates:")
+    print(f"   AutoARIMA: {arima_success:.1f}%")
+    print(f"   ETS: {ets_success:.1f}%")
+    
     print(f"\nCompleted at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print("\n✓ Day 3 baseline evaluation complete!")
-    print(f"\nResults saved to: {Path(__file__).parent / 'results'}")
+    print(f"\n✓ Day 3 baseline evaluation complete!")
+    print(f"\nResults saved to: {results_dir}")
     print()
 
 
