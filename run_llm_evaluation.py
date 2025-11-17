@@ -2,6 +2,11 @@
 LLM Evaluation Script - Day 5
 Runs Llama on all 50 CiK tasks with and without context
 
+Metrics:
+- MAE (Mean Absolute Error)
+- nMAE (Normalized MAE)
+- DA (Directional Accuracy)
+
 Usage:
     python run_llm_evaluation.py --method llmp --use-context
     python run_llm_evaluation.py --method llmp --no-context
@@ -30,6 +35,66 @@ def mean_absolute_error(y_true, y_pred):
     return np.mean(np.abs(y_true - y_pred))
 
 
+def normalized_mae(y_true, y_pred):
+    """
+    Compute Normalized MAE
+    
+    nMAE = MAE / mean(|actual|)
+    
+    Normalizes MAE by the scale of the data, enabling fair comparison
+    across domains with different scales. More robust than MAPE as it
+    avoids division by individual zero values.
+    """
+    mean_actual = np.mean(np.abs(y_true))
+    if mean_actual == 0:
+        return np.nan
+    
+    mae = mean_absolute_error(y_true, y_pred)
+    return mae / mean_actual
+
+
+def directional_accuracy(y_true, y_pred, last_value):
+    """
+    Compute Directional Accuracy
+    
+    Measures if forecast correctly predicts direction of change
+    compared to the last observed value
+    
+    Parameters:
+    -----------
+    y_true : np.array
+        Actual future values
+    y_pred : np.array
+        Predicted future values
+    last_value : float
+        Last value in history (reference point)
+    
+    Returns:
+    --------
+    da : float
+        Directional accuracy (0 to 1)
+    """
+    if len(y_true) == 0 or len(y_pred) == 0:
+        return np.nan
+    
+    # Direction of actual change from last value
+    actual_direction = np.sign(y_true - last_value)
+    
+    # Direction of predicted change from last value
+    pred_direction = np.sign(y_pred - last_value)
+    
+    # Count correct directions (ignoring cases where actual change is 0)
+    non_zero_mask = actual_direction != 0
+    
+    if non_zero_mask.sum() == 0:
+        return np.nan  # All values same as last_value
+    
+    correct = (actual_direction[non_zero_mask] == pred_direction[non_zero_mask]).sum()
+    total = non_zero_mask.sum()
+    
+    return correct / total
+
+
 def load_dataset():
     """Load time series instances and contexts from datasets folder"""
     print("=" * 80)
@@ -55,8 +120,13 @@ def load_dataset():
     ts_df['history'] = ts_df['history'].apply(np.array)
     ts_df['future'] = ts_df['future'].apply(np.array)
     
-    print(f"\nDataset breakdown by type:")
-    print(ts_df['type'].value_counts())
+    print(f"\nDataset breakdown by domain:")
+    if 'domain' in ts_df.columns:
+        print(ts_df['domain'].value_counts().sort_index())
+    elif 'type' in ts_df.columns:
+        print(ts_df['type'].value_counts())
+    else:
+        print("No domain or type column found")
     print()
     
     return ts_df, contexts
@@ -72,7 +142,7 @@ def create_timestamps(history, future):
     n_hist = len(history)
     n_fut = len(future)
     
-    # Create timestamps (daily frequency as placeholder)
+    # Create timestamps (hourly frequency as placeholder)
     end = pd.Timestamp.now().normalize()
     hist_times = pd.date_range(end=end, periods=n_hist, freq='H')
     fut_times = pd.date_range(
@@ -98,7 +168,7 @@ def run_llm_on_task(llm_model, task_id, history, future, context, use_context, s
         shared_pipe: Shared HuggingFace pipeline
     
     Returns:
-        dict with predictions, actual, mae, and status
+        dict with predictions, actual, metrics (MAE, nMAE, DA), and status
     """
     try:
         # Create timestamps
@@ -140,14 +210,21 @@ def run_llm_on_task(llm_model, task_id, history, future, context, use_context, s
         if not np.all(np.isfinite(predictions)):
             predictions = np.where(np.isfinite(predictions), predictions, history[-1])
         
-        # Compute MAE
+        # Compute all metrics
         mae = mean_absolute_error(future, predictions)
+        nmae = normalized_mae(future, predictions)
+        
+        # Compute Directional Accuracy
+        last_value = history[-1]
+        da = directional_accuracy(future, predictions, last_value)
         
         return {
             'task_id': task_id,
             'predictions': predictions,
             'actual': future,
             'mae': mae,
+            'nmae': nmae,
+            'da': da,
             'status': 'success'
         }
     
@@ -158,6 +235,8 @@ def run_llm_on_task(llm_model, task_id, history, future, context, use_context, s
             'predictions': None,
             'actual': future,
             'mae': np.nan,
+            'nmae': np.nan,
+            'da': np.nan,
             'status': f'error: {str(e)[:100]}'
         }
 
@@ -176,7 +255,7 @@ def build_shared_pipeline(model_id: str):
         print("✓ Using Apple Silicon GPU (MPS) - this will be MUCH faster!")
     else:
         device = "cpu"
-        print("Using CPU")
+        print("⚠ Using CPU - this will be slow. Consider using a GPU.")
     
     tok = AutoTokenizer.from_pretrained(model_id)
     if tok.pad_token is None:
@@ -239,6 +318,8 @@ def run_llm_evaluation(ts_df, contexts, use_context, method='llmp', model_id='me
         {
             'task_id': r['task_id'],
             'mae': r['mae'],
+            'nmae': r['nmae'],
+            'da': r['da'],
             'status': r['status'],
             'horizon': len(r['actual'])
         }
@@ -251,9 +332,10 @@ def run_llm_evaluation(ts_df, contexts, use_context, method='llmp', model_id='me
     print(f"  Total tasks: {len(results_df)}")
     print(f"  Successful: {(results_df['status'] == 'success').sum()}")
     print(f"  Failed: {(results_df['status'] != 'success').sum()}")
-    print(f"  Mean MAE: {results_df['mae'].mean():.4f}")
-    print(f"  Median MAE: {results_df['mae'].median():.4f}")
-    print(f"  Std MAE: {results_df['mae'].std():.4f}")
+    print(f"\n  Metrics (mean ± std):")
+    print(f"    MAE:   {results_df['mae'].mean():8.2f} ± {results_df['mae'].std():6.2f}")
+    print(f"    nMAE:  {results_df['nmae'].mean():8.4f} ± {results_df['nmae'].std():6.4f}")
+    print(f"    DA:    {results_df['da'].mean():8.4f} ± {results_df['da'].std():6.4f}")
     print(f"{'='*80}\n")
     
     return results_df
@@ -299,6 +381,7 @@ def main():
     print("#" + "  LLM EVALUATION - DAY 5".center(78) + "#")
     context_str = "WITH CONTEXT" if args.use_context else "NO CONTEXT"
     print("#" + f"  {args.method.upper()} - {context_str}".center(78) + "#")
+    print("#" + "  Metrics: MAE, nMAE, DA".center(78) + "#")
     print("#" + " " * 78 + "#")
     print("#" * 80)
     print(f"\nStarted at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -317,6 +400,18 @@ def main():
     
     # Save results
     save_results(results_df, args.use_context, method=args.method)
+    
+    # Final summary
+    print("=" * 80)
+    print("FINAL SUMMARY")
+    print("=" * 80)
+    context_str = "WITH CONTEXT" if args.use_context else "NO CONTEXT"
+    print(f"\n{args.method.upper()} - {context_str}")
+    print(f"  MAE:   {results_df['mae'].mean():.2f}")
+    print(f"  nMAE:  {results_df['nmae'].mean():.4f}")
+    print(f"  DA:    {results_df['da'].mean():.4f}")
+    print(f"  Success Rate: {(results_df['status'] == 'success').mean() * 100:.1f}%")
+    print("=" * 80)
     
     print(f"\nCompleted at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"\n✓ Day 5 LLM evaluation complete!")
