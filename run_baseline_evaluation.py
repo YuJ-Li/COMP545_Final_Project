@@ -54,7 +54,12 @@ def load_dataset():
     ts_df['future'] = ts_df['future'].apply(np.array)
     
     print(f"\nDataset breakdown by type:")
-    print(ts_df['type'].value_counts())
+    if 'domain' in ts_df.columns:
+        print(ts_df['domain'].value_counts())
+    elif 'type' in ts_df.columns:
+        print(ts_df['type'].value_counts())
+    else:
+        print("No domain or type column found")
     print()
     
     return ts_df, contexts

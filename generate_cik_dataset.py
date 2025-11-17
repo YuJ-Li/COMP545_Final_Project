@@ -1,16 +1,6 @@
 """
 Day 1: Generate 50 diverse tasks from Context-is-Key benchmark
 
-CiK task generators automatically download underlying datasets (solar, electricity, traffic)
-on first use and cache them. We just need to instantiate tasks with different seeds.
-
-This script:
-1. Instantiates task generators from CiK (datasets auto-download)
-2. Generates 50 tasks with different seeds
-3. Saves to datasets/ in required format
-4. Creates train/test split (35/15)
-5. Plots samples for verification
-
 Author: Kazi
 Date: Nov 2024
 """
@@ -22,74 +12,92 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
-from collections import defaultdict
 
 # Add CiK benchmark to path
 cik_path = Path("context-is-key-forecasting")
 sys.path.insert(0, str(cik_path))
 
 print("="*70)
-print("Day 1: CiK Task Generation")
+print("Day 1: CiK Task Generation - 10 Diverse Domains")
 print("="*70)
 print("\nImporting CiK task generators...")
-print("Note: First run will download datasets (solar, electricity, traffic)")
+print("Note: First run will download datasets")
 print("This may take 5-10 minutes. Subsequent runs will use cached data.\n")
 
-# Import diverse task generators with CORRECT names
+# Import diverse task generators from DIFFERENT data sources
 from cik_benchmark.tasks.solar_tasks import (
     MinimalInfoHalfDaySolarForecastTask,
-    LocaleInfoHalfDaySolarForecastTask,
-    ZenithInfoHalfDaySolarForecastTask,
+)
+from cik_benchmark.tasks.fred_county_tasks import (
+    UnemploymentCountyUsingSingleStateData,
+)
+from cik_benchmark.tasks.causal_chambers import (
+    SpeedFromLoadTask,
+)
+from cik_benchmark.tasks.electricity_tasks import (
+    ElectricityIncreaseInPredictionTask,
+)
+from cik_benchmark.tasks.pred_change_tasks import (
+    DecreaseInTrafficInPredictionTask,
+)
+from cik_benchmark.tasks.predictable_spikes_in_pred import (
+    PredictableSpikesInPredTask,
+)
+from cik_benchmark.tasks.predictable_constraints_real_data import (
+    OraclePredUnivariateConstraintsTask,
 )
 from cik_benchmark.tasks.nsrdb_tasks import (
     DirectNormalIrradianceFromCloudStatus,
     GlobalHorizontalIrradianceFromClearsky,
 )
-from cik_benchmark.tasks.electricity_tasks import (
-    ElectricityIncreaseInPredictionTask,
-    ShortNewsElectricityIncreaseInPredictionTask,
-    MediumNewsElectricityIncreaseInPredictionTask,
-)
 from cik_benchmark.tasks.sensor_maintenance import (
     SensorMaintenanceInPredictionTask,
-)
-from cik_benchmark.tasks.traffic_tasks import (
-    ExplicitTrafficForecastTaskwithHolidaysInPredictionWindow,
-)
-from cik_benchmark.tasks.pred_change_tasks import (
-    DecreaseInTrafficInPredictionTask,
 )
 
 print("✓ Imports successful!\n")
 
-# Define task generators with target counts (total = 50)
-# Format: (TaskClass, count, short_name)
+# DIVERSE TASK CONFIGURATION: 10 domains × 5 tasks = 50 total
+# Each domain uses a DIFFERENT underlying dataset
 TASK_CONFIG = [
-    # Solar tasks - 15 tasks (30%)
-    (MinimalInfoHalfDaySolarForecastTask, 5, "solar_minimal"),
-    (LocaleInfoHalfDaySolarForecastTask, 5, "solar_locale"),
-    (ZenithInfoHalfDaySolarForecastTask, 5, "solar_zenith"),
+    # 1. Solar power production (NSRDB - half-day forecasts) - 5 tasks
+    (MinimalInfoHalfDaySolarForecastTask, 5, "solar"),
     
-    # NSRDB solar irradiance - 8 tasks (16%)
-    (DirectNormalIrradianceFromCloudStatus, 4, "irradiance_dni"),
-    (GlobalHorizontalIrradianceFromClearsky, 4, "irradiance_ghi"),
+    # 2. Economic data (FRED county unemployment) - 5 tasks
+    (UnemploymentCountyUsingSingleStateData, 5, "economic"),
     
-    # Electricity - 12 tasks (24%)
-    (ElectricityIncreaseInPredictionTask, 6, "electricity_spike"),
-    (ShortNewsElectricityIncreaseInPredictionTask, 3, "electricity_short_news"),
-    (MediumNewsElectricityIncreaseInPredictionTask, 3, "electricity_med_news"),
+    # 3. Physics experiments (Wind tunnel causal chamber) - 5 tasks
+    (SpeedFromLoadTask, 5, "physics"),
     
-    # Sensor & Traffic - 9 tasks (18%)
-    (SensorMaintenanceInPredictionTask, 5, "sensor_maintenance"),
-    (ExplicitTrafficForecastTaskwithHolidaysInPredictionWindow, 4, "traffic_holiday"),
+    # 4. Electricity demand spikes - 5 tasks
+    (ElectricityIncreaseInPredictionTask, 5, "electricity"),
     
-    # Traffic decrease - 6 tasks (12%)
-    (DecreaseInTrafficInPredictionTask, 6, "traffic_decrease"),
+    # 5. Traffic with accidents/closures - 5 tasks
+    (DecreaseInTrafficInPredictionTask, 5, "traffic_events"),
+    
+    # 6. Electricity with predictable spikes - 5 tasks
+    (PredictableSpikesInPredTask, 5, "electricity_spikes"),
+    
+    # 7. Traffic with constraints (PeMS) - 5 tasks
+    (OraclePredUnivariateConstraintsTask, 5, "traffic_constrained"),
+    
+    # 8. Solar irradiance DNI (direct normal) - 5 tasks
+    (DirectNormalIrradianceFromCloudStatus, 5, "irradiance_dni"),
+    
+    # 9. Solar irradiance GHI (global horizontal) - 5 tasks
+    (GlobalHorizontalIrradianceFromClearsky, 5, "irradiance_ghi"),
+    
+    # 10. Sensor maintenance schedules - 5 tasks
+    (SensorMaintenanceInPredictionTask, 5, "sensor"),
 ]
 
 # Verify total
 total_tasks = sum(count for _, count, _ in TASK_CONFIG)
-print(f"Configuration: {total_tasks} total tasks across {len(TASK_CONFIG)} task types\n")
+print(f"Configuration: {total_tasks} total tasks across {len(TASK_CONFIG)} domains\n")
+
+print("Domain breakdown:")
+for task_class, count, domain in TASK_CONFIG:
+    print(f"  {domain:20s}: {count} tasks ({task_class.__name__})")
+print()
 
 
 def extract_all_context(task):
@@ -131,35 +139,12 @@ def analyze_series_stats(values):
     # Volatility (coefficient of variation)
     cv = std_val / (abs(mean_val) + 1e-8)
     
-    # Structural break score
-    mid = len(values) // 2
-    if mid > 2:
-        first_mean = np.mean(values[:mid])
-        second_mean = np.mean(values[mid:])
-        break_score = abs(second_mean - first_mean) / (std_val + 1e-8)
-    else:
-        break_score = 0
-    
     return {
         'mean': float(mean_val),
         'std': float(std_val),
         'trend': float(trend),
         'volatility': float(cv),
-        'structural_break': float(break_score)
     }
-
-
-def categorize_series(stats):
-    """Categorize time series based on characteristics"""
-    # Simple heuristics
-    if stats['structural_break'] > 1.0:
-        return 'structural_break'
-    elif abs(stats['trend']) > 0.1 * stats['std']:
-        return 'trending'
-    elif stats['volatility'] > 0.5:
-        return 'volatile'
-    else:
-        return 'seasonal'
 
 
 def generate_tasks(random_seed=42):
@@ -181,8 +166,9 @@ def generate_tasks(random_seed=42):
     print("TASK GENERATION")
     print("="*70)
     
-    for task_class, count, short_name in TASK_CONFIG:
-        print(f"\n{task_class.__name__}: Generating {count} tasks...")
+    for task_class, count, domain in TASK_CONFIG:
+        print(f"\n{domain.upper()}: {task_class.__name__}")
+        print(f"  Generating {count} tasks...")
         
         for i in range(count):
             try:
@@ -190,39 +176,41 @@ def generate_tasks(random_seed=42):
                 seed = random_seed + task_id
                 task = task_class(seed=seed)
                 
-                # Extract data - use last column which is typically the target
-                history = task.past_time.iloc[:, -1].values
-                future = task.future_time.iloc[:, -1].values
+                # Extract data - handle different formats
+                if hasattr(task.past_time, 'iloc'):
+                    history = task.past_time.iloc[:, -1].values
+                    future = task.future_time.iloc[:, -1].values
+                else:
+                    history = task.past_time.values
+                    future = task.future_time.values
+                    
                 context = extract_all_context(task)
                 
                 # Analyze characteristics
                 stats = analyze_series_stats(history)
-                category = categorize_series(stats)
                 
                 # Store task object
                 tasks.append(task)
                 
-                # Store metadata
+                # Store metadata with DOMAIN label
                 metadata.append({
                     'id': f"task_{task_id:03d}",
+                    'domain': domain,  # DOMAIN LABEL for plotting!
                     'generator': task_class.__name__,
-                    'short_name': short_name,
                     'seed': seed,
                     'history_length': len(history),
                     'future_length': len(future),
-                    'category': category,
                     'mean': stats['mean'],
                     'std': stats['std'],
                     'trend': stats['trend'],
                     'volatility': stats['volatility'],
-                    'structural_break': stats['structural_break'],
                     'context_length': len(context),
                     'context_preview': context[:150] + "..." if len(context) > 150 else context
                 })
                 
                 task_id += 1
                 
-                if task_id % 5 == 0:
+                if task_id % 10 == 0:
                     print(f"  Progress: {task_id}/{total_tasks} tasks completed")
                     
             except Exception as e:
@@ -238,10 +226,8 @@ def generate_tasks(random_seed=42):
     print("\n" + "="*70)
     print("DIVERSITY STATISTICS")
     print("="*70)
-    print("\nCategory distribution:")
-    print(df_metadata['category'].value_counts())
-    print(f"\nTask type distribution:")
-    print(df_metadata['short_name'].value_counts())
+    print("\nDomain distribution:")
+    print(df_metadata['domain'].value_counts().sort_index())
     print(f"\nHistory length: min={df_metadata['history_length'].min()}, "
           f"max={df_metadata['history_length'].max()}, "
           f"mean={df_metadata['history_length'].mean():.1f}")
@@ -276,8 +262,12 @@ def save_tasks(tasks, metadata_df, output_dir='datasets'):
         task_id = metadata_df.iloc[idx]['id']
         
         # Extract time series data
-        history = task.past_time.iloc[:, -1].values.tolist()
-        future = task.future_time.iloc[:, -1].values.tolist()
+        if hasattr(task.past_time, 'iloc'):
+            history = task.past_time.iloc[:, -1].values.tolist()
+            future = task.future_time.iloc[:, -1].values.tolist()
+        else:
+            history = task.past_time.values.tolist()
+            future = task.future_time.values.tolist()
         
         # Store in ts_instances
         ts_instances.append({
@@ -285,7 +275,7 @@ def save_tasks(tasks, metadata_df, output_dir='datasets'):
             'history': history,
             'future': future,
             'length': len(history) + len(future),
-            'type': metadata_df.iloc[idx]['category']
+            'domain': metadata_df.iloc[idx]['domain']  # Include domain
         })
         
         # Extract and store context
@@ -317,33 +307,33 @@ def save_tasks(tasks, metadata_df, output_dir='datasets'):
 
 def create_train_test_split(metadata_df, train_size=35, test_size=15, random_seed=42):
     """
-    Create stratified train/test split ensuring diversity in both sets
+    Create stratified train/test split by domain
     """
     np.random.seed(random_seed)
     
     print("\n" + "="*70)
-    print("TRAIN/TEST SPLIT")
+    print("TRAIN/TEST SPLIT (STRATIFIED BY DOMAIN)")
     print("="*70)
-    
-    # Stratify by category to ensure diversity
-    categories = metadata_df['category'].unique()
     
     train_ids = []
     test_ids = []
     
-    for category in categories:
-        cat_tasks = metadata_df[metadata_df['category'] == category]['id'].values
+    # Stratify by domain
+    domains = metadata_df['domain'].unique()
+    
+    for domain in domains:
+        domain_tasks = metadata_df[metadata_df['domain'] == domain]['id'].values
         
-        # Determine how many from this category
-        n_cat = len(cat_tasks)
-        n_cat_train = int(n_cat * train_size / (train_size + test_size))
+        # 70% train, 30% test
+        n_domain = len(domain_tasks)
+        n_domain_train = int(n_domain * 0.7)
         
         # Shuffle and split
-        cat_tasks_shuffled = cat_tasks.copy()
-        np.random.shuffle(cat_tasks_shuffled)
+        domain_shuffled = domain_tasks.copy()
+        np.random.shuffle(domain_shuffled)
         
-        train_ids.extend(cat_tasks_shuffled[:n_cat_train].tolist())
-        test_ids.extend(cat_tasks_shuffled[n_cat_train:].tolist())
+        train_ids.extend(domain_shuffled[:n_domain_train].tolist())
+        test_ids.extend(domain_shuffled[n_domain_train:].tolist())
     
     # Trim to exact sizes
     np.random.shuffle(train_ids)
@@ -366,14 +356,14 @@ def create_train_test_split(metadata_df, train_size=35, test_size=15, random_see
     print(f"Train: {len(train_ids)} tasks")
     print(f"Test: {len(test_ids)} tasks")
     
-    # Show category distribution in each split
+    # Show domain distribution in each split
     train_meta = metadata_df[metadata_df['id'].isin(train_ids)]
     test_meta = metadata_df[metadata_df['id'].isin(test_ids)]
     
-    print(f"\nTrain set category distribution:")
-    print(train_meta['category'].value_counts())
-    print(f"\nTest set category distribution:")
-    print(test_meta['category'].value_counts())
+    print(f"\nTrain set domain distribution:")
+    print(train_meta['domain'].value_counts().sort_index())
+    print(f"\nTest set domain distribution:")
+    print(test_meta['domain'].value_counts().sort_index())
     
     print(f"\n✓ Saved split to {split_path}")
     
@@ -399,15 +389,18 @@ def plot_sample_tasks(tasks, metadata_df, n_samples=5, output_dir='datasets/plot
     for idx in sample_indices:
         task = tasks[idx]
         task_id = metadata_df.iloc[idx]['id']
-        category = metadata_df.iloc[idx]['category']
-        generator = metadata_df.iloc[idx]['short_name']
+        domain = metadata_df.iloc[idx]['domain']
         
         # Create figure
         fig, ax = plt.subplots(figsize=(14, 6))
         
         # Extract data
-        history = task.past_time.iloc[:, -1].values
-        future = task.future_time.iloc[:, -1].values
+        if hasattr(task.past_time, 'iloc'):
+            history = task.past_time.iloc[:, -1].values
+            future = task.future_time.iloc[:, -1].values
+        else:
+            history = task.past_time.values
+            future = task.future_time.values
         
         # Create time indices
         hist_idx = np.arange(len(history))
@@ -420,7 +413,7 @@ def plot_sample_tasks(tasks, metadata_df, n_samples=5, output_dir='datasets/plot
         
         # Add context as title
         context = extract_all_context(task)
-        title = f"{task_id} | Type: {generator} | Category: {category}\n"
+        title = f"{task_id} | Domain: {domain}\n"
         title += context[:200] + "..." if len(context) > 200 else context
         ax.set_title(title, fontsize=9, wrap=True)
         ax.set_xlabel('Time Step', fontsize=10)
@@ -431,7 +424,7 @@ def plot_sample_tasks(tasks, metadata_df, n_samples=5, output_dir='datasets/plot
         plt.tight_layout()
         
         # Save
-        plot_path = os.path.join(output_dir, f'{task_id}_sample.png')
+        plot_path = os.path.join(output_dir, f'{task_id}_{domain}.png')
         plt.savefig(plot_path, dpi=150, bbox_inches='tight')
         plt.close()
         
@@ -462,10 +455,12 @@ def main():
     print("\n" + "="*70)
     print("DAY 1 COMPLETE!")
     print("="*70)
-    print(f"\n✓ Generated {len(tasks)} tasks")
+    print(f"\n✓ Generated {len(tasks)} tasks from {len(metadata_df['domain'].unique())} domains")
     print(f"✓ Created {split['train_size']} train / {split['test_size']} test split")
     print(f"✓ Saved to datasets/ folder")
     print(f"✓ Sample plots in datasets/plots/")
+    print("\n📊 Domain distribution:")
+    print(metadata_df['domain'].value_counts().sort_index())
     print("\nNext: Move to Day 3 (model experiments)")
     print("="*70 + "\n")
 
