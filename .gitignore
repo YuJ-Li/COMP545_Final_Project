@@ -1,85 +1,87 @@
-# ---- Python ----
+# ============================
+# Python
+# ============================
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
 *.pyc
 *$py.class
+.Python
 
-# ---- Virtual environments ----
+# ============================
+# Virtual Environments
+# ============================
 .venv/
 venv/
 env/
 ENV/
-.venv/*
-venv/*
-env/*
-ENV/*
 
-# ---- IDE / Editor ----
+# ============================
+# IDE / Editor Files
+# ============================
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
 
-# ---- OS files ----
+# ============================
+# OS Files
+# ============================
 .DS_Store
 Thumbs.db
 
-# ---- Logs & temp ----
+# ============================
+# Logs / Temp
+# ============================
 *.log
 *.tmp
 *.swp
 *.swo
 
-# ---- Byte-compiled / packaged ----
+# ============================
+# Build / Distribution
+# ============================
 build/
 dist/
 *.egg-info/
 .eggs/
 
-# ---- Checkpoints / outputs ----
+# ============================
+# Checkpoints / Outputs
+# ============================
 outputs/
-results/
 *.ckpt
 *.pt
 *.bin
 *.jsonl
 
-# ---- HuggingFace cache ----
+# ============================
+# HuggingFace Cache
+# ============================
 ~/.cache/huggingface/
 huggingface/
 
-# ---- Notebooks ----
-.ipynb_checkpoints/
-# Large data files
-data/traffic_data/
-data/electricity_hourly/
-*.csv
-
-# But keep essential datasets
-!datasets/*.csv
-!results/*.csv
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-
-# Jupyter
+# ============================
+# Notebooks
+# ============================
 .ipynb_checkpoints/
 
-# macOS
-.DS_Store
-
-# Model files (too large for GitHub)
-*.bin
+# ============================
+# Model files
+# ============================
 *.safetensors
-*.pt
 *.pth
 
-# Results plots
-*.png
-!datasets/plots/*.png
+
+# ============================
+# IGNORE ENTIRE DIRECTORIES
+# ============================
+
+context-is-key-forecasting/
+data/
+datasets/
+models/
+
+# If you ever want to keep something inside them, un-ignore like this:
+# !datasets/keep_this_file.csv

@@ -253,6 +253,9 @@ def build_shared_pipeline(model_id: str):
     if torch.backends.mps.is_available():
         device = "mps"
         print("✓ Using Apple Silicon GPU (MPS) - this will be MUCH faster!")
+    elif torch.cuda.is_available():
+        device = "cuda"
+        print(f"✓ Using NVIDIA GPU: {torch.cuda.get_device_name(0)}")
     else:
         device = "cpu"
         print("⚠ Using CPU - this will be slow. Consider using a GPU.")
