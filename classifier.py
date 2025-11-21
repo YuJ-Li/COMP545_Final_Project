@@ -9,15 +9,16 @@ ALPHA = 0.4  # weight for NMAE score
 BETA = 0.4   # weight for DA score
 GAMMA = 0.2  # weight for cost score
 
-# Relative cost: LLM with context is 8x more expensive than ARIMA/ETS
+# Relative cost: Both LLMs with context are 8x more expensive than ARIMA/ETS
 MODEL_COST = {
     "arima": 1.0,
     "ets": 1.0,
     "llmp_with_context": 8.0,
+    "gpt4o_mini_with_context": 8.0,  # Same cost as Llama
 }
 
 # Models considered in the scoring / selection
-MODELS_FOR_SCORING = ["arima", "ets", "llmp_with_context"]
+MODELS_FOR_SCORING = ["arima", "ets", "llmp_with_context", "gpt4o_mini_with_context"]
 
 
 # ============================================
@@ -47,6 +48,7 @@ def _score_single_row(row: pd.Series) -> pd.Series:
         - arima
         - ets
         - llmp_with_context
+        - gpt4o_mini_with_context
 
     score = ALPHA * nmae_score + BETA * da_score + GAMMA * cost_score
 
@@ -59,6 +61,7 @@ def _score_single_row(row: pd.Series) -> pd.Series:
         arima_score,
         ets_score,
         llmp_with_context_score,
+        gpt4o_mini_with_context_score,
         selected_model
     """
     # Collect raw NMAE and DA
@@ -107,6 +110,7 @@ def _score_single_row(row: pd.Series) -> pd.Series:
     row["arima_score"] = scores["arima"]
     row["ets_score"] = scores["ets"]
     row["llmp_with_context_score"] = scores["llmp_with_context"]
+    row["gpt4o_mini_with_context_score"] = scores["gpt4o_mini_with_context"]
 
     # Best model = highest score
     row["selected_model"] = max(scores, key=scores.get)
@@ -122,11 +126,14 @@ def add_scores_and_selection(df: pd.DataFrame) -> pd.DataFrame:
         ets_nmae, ets_da,
         llmp_no_context_nmae, llmp_no_context_da,
         llmp_with_context_nmae, llmp_with_context_da,
+        gpt4o_mini_no_context_nmae, gpt4o_mini_no_context_da,
+        gpt4o_mini_with_context_nmae, gpt4o_mini_with_context_da,
 
     compute scores and add:
         arima_score,
         ets_score,
         llmp_with_context_score,
+        gpt4o_mini_with_context_score,
         selected_model
     """
     return df.apply(_score_single_row, axis=1)
@@ -137,7 +144,7 @@ def add_scores_and_selection(df: pd.DataFrame) -> pd.DataFrame:
 # ============================================
 def combine_csv_for_dir(results_dir: str) -> str:
     """
-    For a given results subfolder, load the 4 CSVs, merge them,
+    For a given results subfolder, load the 6 CSVs, merge them,
     add scoring columns + selected_model, and write comparison.csv.
 
     Returns the path to comparison.csv.
@@ -146,12 +153,16 @@ def combine_csv_for_dir(results_dir: str) -> str:
     ets_path = os.path.join(results_dir, "ets_results.csv")
     llmp_nc_path = os.path.join(results_dir, "llmp_no_context_results.csv")
     llmp_wc_path = os.path.join(results_dir, "llmp_with_context_results.csv")
+    gpt_nc_path = os.path.join(results_dir, "gpt4o_mini_no_context_results.csv")
+    gpt_wc_path = os.path.join(results_dir, "gpt4o_mini_with_context_results.csv")
 
     # Load and rename columns
     arima_df = load_results(arima_path, "arima")
     ets_df = load_results(ets_path, "ets")
     llmp_nc_df = load_results(llmp_nc_path, "llmp_no_context")
     llmp_wc_df = load_results(llmp_wc_path, "llmp_with_context")
+    gpt_nc_df = load_results(gpt_nc_path, "gpt4o_mini_no_context")
+    gpt_wc_df = load_results(gpt_wc_path, "gpt4o_mini_with_context")
 
     # Merge on task_id
     merged = (
@@ -159,6 +170,8 @@ def combine_csv_for_dir(results_dir: str) -> str:
         .merge(ets_df, on="task_id", how="inner")
         .merge(llmp_nc_df, on="task_id", how="inner")
         .merge(llmp_wc_df, on="task_id", how="inner")
+        .merge(gpt_nc_df, on="task_id", how="inner")
+        .merge(gpt_wc_df, on="task_id", how="inner")
     )
 
     # Add score columns + selected_model
@@ -172,17 +185,17 @@ def combine_csv_for_dir(results_dir: str) -> str:
 
 
 # ============================================
-# Plotting (LLMP-no-context excluded from plots)
+# Plotting (no-context models excluded from plots)
 # ============================================
 def make_long_format(df: pd.DataFrame) -> pd.DataFrame:
     """
     Convert wide-format comparison.csv into:
     columns: task_id, model, nmae, da
 
-    Only include arima, ets, llmp_with_context in the plots.
-    llmp_no_context stays only in the CSV.
+    Include arima, ets, llmp_with_context, gpt4o_mini_with_context in plots.
+    No-context variants stay only in the CSV.
     """
-    models_for_plot = ["arima", "ets", "llmp_with_context"]
+    models_for_plot = ["arima", "ets", "llmp_with_context", "gpt4o_mini_with_context"]
     records = []
 
     for _, row in df.iterrows():
@@ -203,7 +216,7 @@ def plot_all_for_dir(results_dir: str, comparison_path: str | None = None) -> No
         nmae_da_scatter.png   (triple broken x-axis)
         model_centroids.png   (one point per model: mean NMAE vs mean DA)
 
-    Plots only ARIMA, ETS, LLMP-with-context.
+    Plots ARIMA, ETS, Llama-with-context, GPT-4o-Mini-with-context.
     """
     if comparison_path is None:
         comparison_path = os.path.join(results_dir, "comparison.csv")
@@ -222,9 +235,17 @@ def plot_all_for_dir(results_dir: str, comparison_path: str | None = None) -> No
 
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, sharey=True, figsize=(15, 5))
 
+    # Color mapping for consistency
+    colors = {
+        'arima': 'C0',
+        'ets': 'C1', 
+        'llmp_with_context': 'C2',
+        'gpt4o_mini_with_context': 'C3'
+    }
+
     # --- Panel 1: 0–25 ---
     for model, group in long_df.groupby("model"):
-        ax1.scatter(group["nmae"], group["da"], label=model)
+        ax1.scatter(group["nmae"], group["da"], label=model, color=colors.get(model), alpha=0.7)
     ax1.set_xlim(0, zoom1_max)
     ax1.set_xlabel("NMAE")
     ax1.set_ylabel("Directional Accuracy (DA)")
@@ -234,7 +255,7 @@ def plot_all_for_dir(results_dir: str, comparison_path: str | None = None) -> No
     for model, group in long_df.groupby("model"):
         mid = group[(group["nmae"] >= zoom2_min) & (group["nmae"] <= zoom2_max)]
         if not mid.empty:
-            ax2.scatter(mid["nmae"], mid["da"])
+            ax2.scatter(mid["nmae"], mid["da"], color=colors.get(model), alpha=0.7)
     ax2.set_xlim(zoom2_min, zoom2_max)
     ax2.set_xlabel("NMAE")
     ax2.set_title("25–200 NMAE")
@@ -243,7 +264,7 @@ def plot_all_for_dir(results_dir: str, comparison_path: str | None = None) -> No
     for model, group in long_df.groupby("model"):
         outliers = group[group["nmae"] > zoom2_max]
         if not outliers.empty:
-            ax3.scatter(outliers["nmae"], outliers["da"])
+            ax3.scatter(outliers["nmae"], outliers["da"], color=colors.get(model), alpha=0.7)
     ax3.set_xlim(outlier_min, long_df["nmae"].max() * 1.05)
     ax3.set_xlabel("NMAE")
     ax3.set_title(">200 NMAE (outliers)")
@@ -274,9 +295,9 @@ def plot_all_for_dir(results_dir: str, comparison_path: str | None = None) -> No
     ax3.plot((-d, +d), (-d, +d), transform=ax3.transAxes, **kwargs)
     ax3.plot((-d, +d), (1 - d, 1 + d), transform=ax3.transAxes, **kwargs)
 
-    # Legend (3 models only)
+    # Legend (4 models now)
     handles, labels = ax1.get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower center", ncol=3)
+    fig.legend(handles, labels, loc="lower center", ncol=4)
 
     fig.suptitle("NMAE vs DA per model (per task)", y=0.97)
     plt.tight_layout(rect=[0, 0.1, 1, 0.95])
@@ -301,9 +322,9 @@ def plot_all_for_dir(results_dir: str, comparison_path: str | None = None) -> No
         .reset_index()
     )
 
-    plt.figure(figsize=(6, 5))
+    plt.figure(figsize=(8, 6))
     for _, row in centroids.iterrows():
-        plt.scatter(row["nmae"], row["da"])
+        plt.scatter(row["nmae"], row["da"], s=100, color=colors.get(row["model"]))
         plt.text(
             row["nmae"],
             row["da"],
@@ -316,6 +337,7 @@ def plot_all_for_dir(results_dir: str, comparison_path: str | None = None) -> No
     plt.xlabel("Mean NMAE (typical, filtered)")
     plt.ylabel("Mean DA (typical, filtered)")
     plt.title("Model centroids in NMAE–DA space")
+    plt.grid(True, alpha=0.3)
     plt.tight_layout()
 
     centroids_path = os.path.join(results_dir, "model_centroids.png")
