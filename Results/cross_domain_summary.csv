@@ -1,0 +1,15 @@
+Domain,Tasks,ARIMA %,ETS %,Llama-NC %,Llama-C %,GPT-NC %,GPT-C %,Llama Context Helped %,GPT Context Helped %,Any Context Helped %,Llama Beat ARIMA %,GPT Beat ARIMA %
+CashDepletedinATMScenario,10,50.0,50.0,0.0,0.0,0.0,0.0,40.0,80.0,90.0,0.0,10.0
+DecreaseInTraffic,10,80.0,20.0,0.0,0.0,0.0,0.0,60.0,80.0,80.0,10.0,40.0
+DirectNormalIrradianceFromCloudStatus,10,0.0,50.0,0.0,10.0,0.0,40.0,40.0,60.0,80.0,10.0,80.0
+ElectricityIncreaseInPredictionTask,10,70.0,10.0,10.0,0.0,0.0,10.0,30.0,60.0,70.0,30.0,30.0
+FullCausalContextExplicitEquationBivarLinSVAR,10,40.0,10.0,10.0,0.0,10.0,30.0,50.0,50.0,70.0,40.0,60.0
+LaneClosureAfterShortHistoryMediumBackground,10,50.0,30.0,0.0,0.0,20.0,0.0,40.0,50.0,70.0,40.0,0.0
+OracleePredUnivariateConstraints,10,40.0,20.0,0.0,20.0,10.0,10.0,70.0,40.0,70.0,80.0,20.0
+PredictableSpikes,10,60.0,10.0,10.0,0.0,10.0,10.0,60.0,30.0,70.0,30.0,30.0
+PreedictableGrocerPersistentShockUnivariate,10,0.0,20.0,20.0,0.0,30.0,30.0,20.0,50.0,50.0,50.0,60.0
+STLPredTrendMultiplierWithMediumDescription,10,80.0,20.0,0.0,0.0,0.0,0.0,70.0,30.0,80.0,10.0,10.0
+SensorMaintenance,10,60.0,30.0,0.0,0.0,10.0,0.0,30.0,50.0,60.0,10.0,10.0
+SolarPowerProduction,10,50.0,20.0,10.0,20.0,0.0,0.0,50.0,50.0,80.0,40.0,40.0
+SpeedFromLoadTask,10,20.0,10.0,20.0,0.0,40.0,10.0,30.0,20.0,50.0,40.0,40.0
+UnemploymentCountyUsingSingleStateData,10,30.0,30.0,10.0,0.0,0.0,30.0,50.0,80.0,100.0,60.0,40.0
