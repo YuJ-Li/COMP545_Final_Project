@@ -85,7 +85,7 @@ TASK_CONFIG = [
 
     # # 2. Economic data (FRED county unemployment)
     # # 2 Improving DA && 8 Equal
-    # (UnemploymentCountyUsingSingleStateData, 10, "economic_unemployment"),
+     (UnemploymentCountyUsingSingleStateData, 10, "economic_unemployment"),
 
     # # 3. Physics experiments (Wind tunnel causal chamber)
     # # 4 Improving DA && 3 Worse && 3 Equal
@@ -97,7 +97,7 @@ TASK_CONFIG = [
 
     # # 5. Traffic with accidents/closures causing drops
     # # 1 Improving DA && 4 Worse && 5 Equal
-    # (DecreaseInTrafficInPredictionTask, 10, "traffic_drop"),
+    #(DecreaseInTrafficInPredictionTask, 10, "traffic_drop"),
 
     # # 6. Electricity with predictable spikes (event-driven)
     # # 3 Improving DA && 3 Worse
@@ -141,7 +141,7 @@ TASK_CONFIG = [
 
     # 16. Fully synthetic constrained random-walk forecasts
     # Many
-    (ConstrainedRandomWalk, 10, "synthetic_constrained"),
+    #(ConstrainedRandomWalk, 10, "synthetic_constrained"),
 ]
 
 # Verify total
