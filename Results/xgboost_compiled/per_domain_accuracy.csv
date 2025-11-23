@@ -1,0 +1,15 @@
+Domain,Test Tasks,Accuracy,Actual % LLM Wins,Predicted % LLM
+CashDepletedinATMScenario,1,1.0,0.0,0.0
+ConstrainedRandomWalk,3,0.6666666666666666,33.33333333333333,0.0
+DecreaseInTraffic,2,1.0,0.0,0.0
+DirectNormalIrradianceFromCloudStatus,3,0.6666666666666666,33.33333333333333,0.0
+ElectricityIncreaseInPredictionTask,1,1.0,0.0,0.0
+FullCausalContextExplicitEquationBivarLinSVAR,2,0.5,50.0,100.0
+LaneClosureAfterShortHistoryMediumBackground,3,0.6666666666666666,66.66666666666666,33.33333333333333
+OracleePredUnivariateConstraints,3,0.6666666666666666,66.66666666666666,100.0
+PredictableSpikes,1,1.0,0.0,0.0
+STLPredTrendMultiplierWithMediumDescription,2,1.0,0.0,0.0
+SensorMaintenance,2,1.0,0.0,0.0
+SolarPowerProduction,2,0.0,100.0,0.0
+SpeedFromLoadTask,2,0.5,50.0,0.0
+UnemploymentCountyUsingSingleStateData,3,1.0,66.66666666666666,66.66666666666666
