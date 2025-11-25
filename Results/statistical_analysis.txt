@@ -1,0 +1,77 @@
+================================================================================
+STATISTICAL ANALYSIS
+================================================================================
+
+1. PAIRED T-TESTS: Do LLMs beat baseline?
+--------------------------------------------------------------------------------
+
+Llama 3B vs Baseline:
+   Mean improvement: -25.8034
+   t-statistic: -1.2799
+   p-value: 0.203073
+   Significant at p<0.05? NO
+
+Mistral 8x7B vs Baseline:
+   Mean improvement: 0.0033
+   t-statistic: 0.0537
+   p-value: 0.957299
+   Significant at p<0.05? NO
+
+GPT-4o mini vs Baseline:
+   Mean improvement: -0.3156
+   t-statistic: -3.0833
+   p-value: 0.002545
+   Significant at p<0.05? YES
+
+
+2. PAIRED T-TESTS: Diminishing returns
+--------------------------------------------------------------------------------
+
+Mistral 8x7B vs Llama 3B:
+   Mistral mean improvement: 0.0033
+   Llama mean improvement: -25.8034
+   Difference: 25.8067
+   t-statistic: 1.2786
+   p-value: 0.203524
+   Mistral significantly better? NO
+
+GPT-4o mini vs Llama 3B:
+   GPT-4o mean improvement: -0.3156
+   Llama mean improvement: -25.8034
+   Difference: 25.4878
+   t-statistic: 1.2628
+   p-value: 0.209123
+   GPT-4o significantly better? NO
+
+Mistral 8x7B vs GPT-4o mini:
+   Mistral mean improvement: 0.0033
+   GPT-4o mean improvement: -0.3156
+   Difference: 0.3188
+   t-statistic: 3.2293
+   p-value: 0.001604
+   Mistral significantly better? YES
+
+
+3. EFFECT SIZES (Cohen's d)
+--------------------------------------------------------------------------------
+
+Llama 3B vs zero:
+   Cohen's d: -0.1168
+   Effect size: negligible
+
+Mistral 8x7B vs zero:
+   Cohen's d: 0.0049
+   Effect size: negligible
+
+GPT-4o mini vs zero:
+   Cohen's d: -0.2815
+   Effect size: small
+
+
+4. CHI-SQUARE TEST: Win rate distribution
+--------------------------------------------------------------------------------
+
+Observed win counts: {'ARIMA': 38, 'MISTRAL': 30, 'GPT4O': 23, 'LLAMA': 17, 'ETS': 12}
+Chi-square statistic: 17.7500
+p-value: 0.001381
+Win rates significantly different from uniform? YES

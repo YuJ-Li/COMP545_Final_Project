@@ -1,0 +1,65 @@
+
+================================================================================
+XGBOOST CLASSIFIER SUMMARY: SELECTIVE LLM USE
+================================================================================
+
+MODEL CONFIGURATION
+--------------------------------------------------------------------------------
+Decision Threshold: 0.50 (optimized from default 0.5)
+Class Weight: scale_pos_weight applied to handle imbalance
+Features: 28 total
+
+CLASSIFICATION PERFORMANCE (NMAE Target)
+--------------------------------------------------------------------------------
+Test Set Size: 24
+Accuracy:      0.708
+Precision:     0.600
+Recall:        0.375
+F1 Score:      0.462
+ROC-AUC:       0.695
+
+Class Balance:
+  Positive (Mistral wins): 8 (33.3%)
+  Negative (Baseline wins): 16 (66.7%)
+
+POLICY COMPARISON
+--------------------------------------------------------------------------------
+          Policy  Mean NMAE  LLM Usage (%)  vs Baseline (%)  Oracle Captured (%)
+ Always-Baseline   0.849620       0.000000         0.000000             0.000000
+      Always-LLM   0.846344     100.000000        -0.385471             2.169068
+XGBoost Selector   0.723789      31.666667       -14.810263            83.338195
+          Oracle   0.698631      34.166667       -17.771279           100.000000
+
+KEY INSIGHTS
+--------------------------------------------------------------------------------
+1. Selector vs Always-Baseline: 0.1258 NMAE improvement
+   (14.8% better)
+
+2. Selector vs Always-LLM: Uses LLM on 31.7% of tasks
+   (saves 68.3% of computational cost)
+
+3. Oracle Benefit Captured: 83.3%
+   (achieves 83.3% of theoretically optimal improvement)
+
+4. LLM Usage Rate: 31.7%
+   Oracle Rate:    34.2%
+   Match:          Yes
+
+TOP 5 MOST IMPORTANT FEATURES
+--------------------------------------------------------------------------------
+           Feature  Importance
+best_baseline_nmae    0.178258
+          arima_da    0.164901
+        arima_nmae    0.161571
+  best_baseline_da    0.154946
+          ets_nmae    0.080741
+
+RECOMMENDATION
+--------------------------------------------------------------------------------
+✓ Selector provides 14.8% improvement over baseline
+✓ Uses LLM on only 31.7% of tasks
+✓ Captures 83.3% of oracle benefit
+
+RECOMMENDATION: Use selector for deployment
+
+================================================================================

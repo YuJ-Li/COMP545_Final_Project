@@ -24,6 +24,7 @@ print("\nImporting CiK task generators...")
 print("Note: First run will download datasets")
 print("This may take 5-10 minutes. Subsequent runs will use cached data.\n")
 
+'''
 # Import diverse task generators from DIFFERENT data sources
 from cik_benchmark.tasks.solar_tasks import (
     MinimalInfoHalfDaySolarForecastTask,
@@ -75,7 +76,7 @@ from cik_benchmark.tasks.constrained_forecasts import (
 )
 
 print("✓ Imports successful!\n")
-
+'''
 # DIVERSE TASK CONFIGURATION: 16 domains × 2 tasks = 32 total
 # Each domain uses a DIFFERENT underlying dataset
 TASK_CONFIG = [
