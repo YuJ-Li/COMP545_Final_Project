@@ -16,18 +16,16 @@ python run_llm_evaluation.py --method dp --use-context
 Note that you can use `--method llmp` and `--no-context` as options as well
 
 ## Run mistral
-```angular2html
-
-```
+Run `run_all_domains_mistral.sh` for complete run;
+If a run on a specific domain is needed, please consult usage within `run_mistral_standalone.py`
 
 ## Run GPT4o
-```angular2html
-
-```
+Run `run_all_domains_gpt4o.sh` for complete run;
+If a run on a specific domain is needed, please consult usage within `run_domain_gpt4o.py`
 
 ## Run classifier
 ```angular2html
-
+python xgboost_selector.py
 ```
 
 ## Results
