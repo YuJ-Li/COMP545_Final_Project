@@ -17,27 +17,6 @@ from pathlib import Path
 def generate_model_performance_summary(results_dir='Results'):
     """
     Generate comprehensive model performance summary table.
-    
-    Computes:
-    - Mean/Median/Std Dev for NMAE and DA
-    - Standard Error (SE = Std Dev / sqrt(n)) for Mean NMAE and Mean DA
-    - Win rates (which model achieves lowest NMAE per task)
-    - Mean improvement over baseline
-    - Percentage of tasks where each model beats baseline
-    
-    Standard Error represents the uncertainty in the estimated mean.
-    Smaller SE indicates more precise estimate of the true population mean.
-    Formula: SE = σ / √n where σ is std dev and n is sample size.
-    
-    Parameters:
-    -----------
-    results_dir : str
-        Path to Results directory containing compiled_comparison.csv
-    
-    Returns:
-    --------
-    summary_df : pd.DataFrame
-        Summary statistics dataframe
     """
     print("="*80)
     print("GENERATING MODEL PERFORMANCE SUMMARY")
