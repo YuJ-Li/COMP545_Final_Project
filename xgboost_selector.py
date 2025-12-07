@@ -549,81 +549,97 @@ def evaluate_classifier(clf, X_test, y_test, threshold=0.5):
 
 
 # ============================================================================
-# TASK 9: GENERATE VISUALIZATIONS
+# TASK 9: GENERATE VISUALIZATIONS (UPGRADED FOR PUBLICATION)
 # ============================================================================
 
-def plot_confusion_matrix(y_test, y_pred, output_dir='results/classifier_outputs'):
-    """Generate confusion matrix plot."""
+def plot_roc_curve(y_test, y_pred_proba, output_dir='results/classifier_outputs'):
+    """Generate publication-quality ROC curve with smooth styling."""
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    from sklearn.metrics import roc_curve, roc_auc_score
+    
     os.makedirs(output_dir, exist_ok=True)
     
-    cm = confusion_matrix(y_test, y_pred)
+    # Set publication style
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Arial', 'DejaVu Sans']
     
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                xticklabels=['Baseline', 'Mistral'],
-                yticklabels=['Baseline', 'Mistral'])
-    plt.title('Confusion Matrix: Selector Predictions', fontsize=14, fontweight='bold')
-    plt.ylabel('True Label', fontsize=12)
-    plt.xlabel('Predicted Label', fontsize=12)
-    plt.tight_layout()
-    
-    output_path = os.path.join(output_dir, 'confusion_matrix_nmae.png')
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print(f"✓ Saved confusion matrix to {output_path}")
-
-
-def plot_roc_curve(y_test, y_pred_proba, output_dir='results/classifier_outputs'):
-    """Generate ROC curve plot."""
     fpr, tpr, thresholds = roc_curve(y_test, y_pred_proba)
     auc = roc_auc_score(y_test, y_pred_proba)
     
-    plt.figure(figsize=(8, 6))
-    plt.plot(fpr, tpr, label=f'XGBoost (AUC = {auc:.3f})', linewidth=2)
-    plt.plot([0, 1], [0, 1], 'k--', label='Random Classifier', linewidth=1)
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate', fontsize=12)
-    plt.ylabel('True Positive Rate', fontsize=12)
-    plt.title('ROC Curve: Selector Performance', fontsize=14, fontweight='bold')
-    plt.legend(loc='lower right', fontsize=10)
-    plt.grid(True, alpha=0.3)
+    fig, ax = plt.subplots(figsize=(9, 8))
+    
+    # Main ROC curve - smooth and professional
+    ax.plot(fpr, tpr, color='#0066CC', linewidth=3.5, 
+            label=f'XGBoost Selector (AUC = {auc:.3f})', zorder=3,
+            solid_capstyle='round')
+    
+    # Diagonal reference line
+    ax.plot([0, 1], [0, 1], color='#666666', linewidth=2.5, 
+            linestyle='--', alpha=0.6,
+            label='Random Classifier (AUC = 0.500)', zorder=2)
+    
+    # Fill area under ROC curve with gradient effect
+    ax.fill_between(fpr, tpr, alpha=0.2, color='#0066CC', zorder=1)
+    
+    # Axes limits with small padding
+    ax.set_xlim([-0.01, 1.01])
+    ax.set_ylim([-0.01, 1.01])
+    
+    # Labels with professional styling
+    ax.set_xlabel('False Positive Rate', fontsize=16, fontweight='600', 
+                  labelpad=12)
+    ax.set_ylabel('True Positive Rate', fontsize=16, fontweight='600',
+                  labelpad=12)
+    ax.set_title('ROC Curve: Selective LLM Deployment', 
+                 fontsize=18, fontweight='700', pad=20)
+    
+    # Grid styling - subtle and professional
+    ax.grid(True, alpha=0.15, linestyle='-', linewidth=0.8, color='#CCCCCC')
+    ax.set_axisbelow(True)
+    
+    # Legend with professional styling
+    legend = ax.legend(loc='lower right', fontsize=13, frameon=True, 
+                       fancybox=True, shadow=False, 
+                       framealpha=0.95, edgecolor='#CCCCCC')
+    legend.get_frame().set_linewidth(1.5)
+    
+    # Tick styling
+    ax.tick_params(axis='both', which='major', labelsize=13, 
+                   length=6, width=1.2, direction='out',
+                   color='#333333')
+    
+    # Make ticks appear at nice intervals
+    ax.set_xticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    ax.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    
+    # Spine styling
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.5)
+        spine.set_color('#333333')
+    
+    # Add subtle background color
+    ax.set_facecolor('#FAFAFA')
+    fig.patch.set_facecolor('white')
+    
     plt.tight_layout()
     
     output_path = os.path.join(output_dir, 'roc_curve_nmae.png')
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path, dpi=300, bbox_inches='tight', 
+                facecolor='white', edgecolor='none')
     plt.close()
     
     print(f"✓ Saved ROC curve to {output_path}")
 
 
-def plot_pr_curve(y_test, y_pred_proba, output_dir='results/classifier_outputs'):
-    """Generate Precision-Recall curve plot."""
-    precision, recall, thresholds = precision_recall_curve(y_test, y_pred_proba)
+def plot_feature_importance(clf, feature_cols, output_dir='results/classifier_outputs', top_n=11):
+    """Generate publication-quality feature importance plot."""
+    import matplotlib.pyplot as plt
+    import seaborn as sns
     
-    plt.figure(figsize=(8, 6))
-    plt.plot(recall, precision, linewidth=2)
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('Recall', fontsize=12)
-    plt.ylabel('Precision', fontsize=12)
-    plt.title('Precision-Recall Curve', fontsize=14, fontweight='bold')
-    plt.axhline(y=y_test.mean(), color='r', linestyle='--', 
-                label=f'Baseline (prevalence={y_test.mean():.2f})')
-    plt.legend(loc='best', fontsize=10)
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
+    # Set publication style
+    plt.style.use('seaborn-v0_8-paper')
     
-    output_path = os.path.join(output_dir, 'pr_curve_nmae.png')
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print(f"✓ Saved PR curve to {output_path}")
-
-
-def plot_feature_importance(clf, feature_cols, output_dir='results/classifier_outputs', top_n=15):
-    """Generate feature importance plot."""
     importance = clf.feature_importances_
     feature_importance_df = pd.DataFrame({
         'Feature': feature_cols,
@@ -636,17 +652,63 @@ def plot_feature_importance(clf, feature_cols, output_dir='results/classifier_ou
     print(f"✓ Saved feature importance to {csv_path}")
     
     # Plot top N features
-    plt.figure(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(10, 8))
+    sns.set_style("whitegrid", {'axes.facecolor': 'white'})
     top_features = feature_importance_df.head(top_n)
-    plt.barh(range(len(top_features)), top_features['Importance'])
-    plt.yticks(range(len(top_features)), top_features['Feature'])
-    plt.xlabel('Feature Importance', fontsize=12)
-    plt.title(f'Top {top_n} Most Important Features', fontsize=14, fontweight='bold')
-    plt.gca().invert_yaxis()
+
+    # Add full border
+    for spine in ax.spines.values():
+        spine.set_visible(True)
+        spine.set_linewidth(1.3)
+        spine.set_edgecolor("black")
+    
+    # Create color gradient (darker = more important)
+    # Custom hex color list (your palette)
+    hex_colors = [
+        "#003f5c", "#2f4b7c", "#665191", "#a05195",
+        "#d45087", "#f95d6a", "#ff7c43", "#ffa600"
+    ]
+
+    # Build a custom gradient colormap
+    from matplotlib.colors import LinearSegmentedColormap
+
+    custom_cmap = LinearSegmentedColormap.from_list("custom", hex_colors, N=256)
+
+    # Sample smoothly across the gradient for however many bars we have
+    colors = custom_cmap(np.linspace(0.05, 0.95, len(top_features)))[::-1]
+    
+    # Horizontal bar chart
+    bars = ax.barh(range(len(top_features)), top_features['Importance'], 
+                   color=colors, edgecolor='black', linewidth=0.8, alpha=0.85)
+    
+    # Feature names on y-axis
+    ax.set_yticks(range(len(top_features)))
+    ax.set_yticklabels(top_features['Feature'], fontsize=11)
+    
+    # Labels and title
+    ax.set_xlabel('Feature Importance (Gain)', fontsize=14, fontweight='bold')
+    ax.set_title(f'Top {top_n} Most Predictive Features for LLM Selection', 
+                 fontsize=16, fontweight='bold', pad=20)
+    
+    # Grid
+    ax.grid(True, axis='x', alpha=0.25, linestyle='--', linewidth=0.8)
+    ax.set_axisbelow(True)
+    
+    # Add value labels on bars
+    for i, (bar, val) in enumerate(zip(bars, top_features['Importance'])):
+        ax.text(val + 0.002, i, f'{val:.3f}', 
+                va='center', fontsize=9, fontweight='bold')
+    
+    # Invert y-axis so highest importance is on top
+    ax.invert_yaxis()
+    
+    # Tick styling
+    ax.tick_params(axis='both', which='major', labelsize=10)
+    
     plt.tight_layout()
     
     output_path = os.path.join(output_dir, 'feature_importance_nmae.png')
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path, dpi=300, bbox_inches='tight', facecolor='white')
     plt.close()
     
     print(f"✓ Saved feature importance plot to {output_path}")
@@ -656,14 +718,13 @@ def plot_feature_importance(clf, feature_cols, output_dir='results/classifier_ou
 
 def generate_visualizations(clf, X_test, y_test, y_pred, y_pred_proba, feature_cols, 
                           output_dir='results/classifier_outputs'):
-    """Generate all visualization plots."""
+    """Generate all visualization plots (publication quality)."""
     print("\n" + "=" * 80)
     print("TASK 9: Generating Visualizations")
     print("=" * 80)
     
-    plot_confusion_matrix(y_test, y_pred, output_dir)
+    # Only generate ROC curve and feature importance
     plot_roc_curve(y_test, y_pred_proba, output_dir)
-    plot_pr_curve(y_test, y_pred_proba, output_dir)
     feature_importance_df = plot_feature_importance(clf, feature_cols, output_dir)
     
     return feature_importance_df
@@ -762,38 +823,94 @@ def evaluate_policies(df_full, clf, feature_cols, threshold=0.5, output_dir='res
 
 
 def plot_policy_comparison(policy_df, output_dir='results/classifier_outputs'):
-    """Generate policy comparison visualization."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+    """Generate publication-quality policy comparison visualization."""
+    import matplotlib.pyplot as plt
+    import seaborn as sns
     
-    # Plot 1: Mean NMAE by policy
-    colors = ['gray', 'red', 'blue', 'green']
-    ax1.bar(policy_df['Policy'], policy_df['Mean NMAE'], color=colors)
-    ax1.set_ylabel('Mean NMAE', fontsize=12)
-    ax1.set_title('Forecast Accuracy by Policy', fontsize=14, fontweight='bold')
-    ax1.tick_params(axis='x', rotation=45)
-    ax1.grid(True, alpha=0.3, axis='y')
+    # Set publication style
+    plt.rcParams['font.family'] = 'sans-serif'
+    plt.rcParams['font.sans-serif'] = ['Arial', 'DejaVu Sans']
     
-    # Plot 2: LLM usage vs benefit
-    ax2.scatter(policy_df['LLM Usage (%)'], policy_df['vs Baseline (%)'], 
-               s=200, c=colors, alpha=0.6)
-    for i, policy in enumerate(policy_df['Policy']):
-        ax2.annotate(policy, 
-                    (policy_df['LLM Usage (%)'].iloc[i], 
-                     policy_df['vs Baseline (%)'].iloc[i]),
-                    fontsize=10, ha='center', va='bottom')
-    ax2.set_xlabel('LLM Usage (%)', fontsize=12)
-    ax2.set_ylabel('Improvement over Baseline (%)', fontsize=12)
-    ax2.set_title('Cost-Benefit Trade-off', fontsize=14, fontweight='bold')
-    ax2.axhline(y=0, color='black', linestyle='--', alpha=0.3)
-    ax2.grid(True, alpha=0.3)
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+    # Define professional color scheme
+    colors = ['#003f5c', '#7a5195', '#ef5675', '#ffa600']  # Dark Blue, Purple, Pink, Orange
+    
+    # Bar chart
+    x_pos = np.arange(len(policy_df))
+    bars = ax.bar(x_pos, policy_df['Mean NMAE'], color=colors, 
+                  edgecolor='black', linewidth=1.5, alpha=0.88, width=0.65)
+    
+    # Add NMAE value labels on top of bars
+    for i, (bar, val) in enumerate(zip(bars, policy_df['Mean NMAE'])):
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height + 0.015,
+                f'{val:.3f}',
+                ha='center', va='bottom', fontsize=14, fontweight='700')
+    
+    # Add LLM usage percentage INSIDE bars (near top)
+    for i, (bar, usage) in enumerate(zip(bars, policy_df['LLM Usage (%)'])):
+        height = bar.get_height()
+        # Position text inside bar, near the top
+        y_pos = height * 0.85 if height > 0.3 else height * 0.5
+        
+        ax.text(bar.get_x() + bar.get_width()/2., y_pos,
+                f'{usage:.1f}%\nLLM Usage',
+                ha='center', va='center', fontsize=11, fontweight='600',
+                color='white', 
+                bbox=dict(boxstyle='round,pad=0.4', 
+                         facecolor='black', alpha=0.6, edgecolor='none'))
+    
+    # Labels and title
+    ax.set_ylabel('Mean NMAE (lower is better)', fontsize=16, fontweight='600', labelpad=12)
+    ax.set_xlabel('Deployment Policy', fontsize=16, fontweight='600', labelpad=12)
+    ax.set_title('Policy Comparison: Forecast Accuracy vs. Computational Cost', 
+                 fontsize=18, fontweight='700', pad=20)
+    
+    # X-axis
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(policy_df['Policy'], fontsize=13, fontweight='600')
+    
+    # Grid - horizontal only, subtle
+    ax.grid(True, alpha=0.2, axis='y', linestyle='-', linewidth=0.9, color='#CCCCCC')
+    ax.set_axisbelow(True)
+    
+    # Add horizontal line at baseline for reference
+    baseline_nmae = policy_df.loc[0, 'Mean NMAE']
+    ax.axhline(y=baseline_nmae, color='#333333', linestyle=':', 
+               linewidth=2, alpha=0.6, label='Baseline Performance', zorder=1)
+    
+    # Legend with professional styling
+    legend = ax.legend(loc='upper right', fontsize=12, frameon=True, 
+                      fancybox=True, shadow=False, framealpha=0.95,
+                      edgecolor='#CCCCCC')
+    legend.get_frame().set_linewidth(1.5)
+    
+    # Tick styling
+    ax.tick_params(axis='both', which='major', labelsize=12,
+                   length=6, width=1.2, color='#333333')
+    
+    # Spine styling
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.5)
+        spine.set_color('#333333')
+    
+    # Add padding to y-axis for cleaner look
+    y_min, y_max = ax.get_ylim()
+    ax.set_ylim(0, y_max + 0.12)
+    
+    # Subtle background
+    ax.set_facecolor('#FAFAFA')
+    fig.patch.set_facecolor('white')
     
     plt.tight_layout()
+    
     output_path = os.path.join(output_dir, 'policy_comparison_nmae.png')
-    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.savefig(output_path, dpi=300, bbox_inches='tight', 
+                facecolor='white', edgecolor='none')
     plt.close()
     
     print(f"✓ Saved policy comparison plot to {output_path}")
-
 
 # ============================================================================
 # TASK 11: PER-DOMAIN ANALYSIS
@@ -931,7 +1048,7 @@ RECOMMENDATION
 # MAIN EXECUTION
 # ============================================================================
 
-def main():
+def main(random_seed=42):
     """Main execution function."""
     print("\n" + "=" * 80)
     print(" XGBOOST CLASSIFIER: SELECTIVE LLM USE FOR TIME SERIES FORECASTING")
@@ -946,7 +1063,7 @@ def main():
     OUTPUT_DIR = 'results/classifier_outputs'
     COMPILED_CSV = os.path.join(RESULTS_DIR, 'compiled_comparison.csv')
     TARGET_COL = 'mistral_beats_baseline'
-    RANDOM_STATE = 42
+    RANDOM_STATE = random_seed
     
     # Create output directory
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -1050,6 +1167,70 @@ def main():
     
     return clf, df_full, metrics, policy_df, feature_importance_df
 
-
 if __name__ == "__main__":
-    clf, df_full, metrics, policy_df, feature_importance_df = main()
+    # Run 5 times with different seeds
+    seeds = [42, 123, 456, 789, 1011]
+    all_results = []
+    
+    print("\n" + "=" * 80)
+    print(" RUNNING 5 ITERATIONS WITH DIFFERENT RANDOM SEEDS")
+    print("=" * 80)
+    
+    for i, seed in enumerate(seeds, 1):
+        print(f"\n{'='*80}")
+        print(f" ITERATION {i}/5 - Random Seed: {seed}")
+        print(f"{'='*80}\n")
+        
+        # Modify the RANDOM_STATE in main()
+        clf, df_full, metrics, policy_df, feature_importance_df = main(random_seed=seed)
+        
+        all_results.append({
+            'seed': seed,
+            'accuracy': metrics['accuracy'],
+            'precision': metrics['precision'],
+            'recall': metrics['recall'],
+            'f1': metrics['f1'],
+            'roc_auc': metrics['roc_auc'],
+            'selector_nmae': policy_df.loc[2, 'Mean NMAE'],
+            'oracle_captured': policy_df.loc[2, 'Oracle Captured (%)']
+        })
+    
+    # Compute statistics across runs
+    results_df = pd.DataFrame(all_results)
+    
+    # Mean and Std
+    acc_mean, acc_std = results_df['accuracy'].mean(), results_df['accuracy'].std()
+    prec_mean, prec_std = results_df['precision'].mean(), results_df['precision'].std()
+    rec_mean, rec_std = results_df['recall'].mean(), results_df['recall'].std()
+    f1_mean, f1_std = results_df['f1'].mean(), results_df['f1'].std()
+    auc_mean, auc_std = results_df['roc_auc'].mean(), results_df['roc_auc'].std()
+    nmae_mean, nmae_std = results_df['selector_nmae'].mean(), results_df['selector_nmae'].std()
+    oracle_mean, oracle_std = results_df['oracle_captured'].mean(), results_df['oracle_captured'].std()
+    
+    # Add mean ± std summary row
+    results_df.loc[len(results_df)] = {
+        'seed': 'mean ± std',
+        'accuracy': f"{acc_mean:.3f} ± {acc_std:.3f}",
+        'precision': f"{prec_mean:.3f} ± {prec_std:.3f}",
+        'recall': f"{rec_mean:.3f} ± {rec_std:.3f}",
+        'f1': f"{f1_mean:.3f} ± {f1_std:.3f}",
+        'roc_auc': f"{auc_mean:.3f} ± {auc_std:.3f}",
+        'selector_nmae': f"{nmae_mean:.3f} ± {nmae_std:.3f}",
+        'oracle_captured': f"{oracle_mean:.1f}% ± {oracle_std:.1f}%"
+    }
+    
+    print("\n" + "=" * 80)
+    print(" FINAL RESULTS ACROSS 5 RUNS")
+    print("=" * 80)
+    print(f"\nAccuracy:        {acc_mean:.3f} ± {acc_std:.3f}")
+    print(f"Precision:       {prec_mean:.3f} ± {prec_std:.3f}")
+    print(f"Recall:          {rec_mean:.3f} ± {rec_std:.3f}")
+    print(f"F1 Score:        {f1_mean:.3f} ± {f1_std:.3f}")
+    print(f"ROC-AUC:         {auc_mean:.3f} ± {auc_std:.3f}")
+    print(f"\nSelector NMAE:   {nmae_mean:.3f} ± {nmae_std:.3f}")
+    print(f"Oracle Captured: {oracle_mean:.1f}% ± {oracle_std:.1f}%")
+    
+    # Save summary
+    results_df.to_csv('results/classifier_outputs/multi_run_summary.csv', index=False)
+    print(f"\n💾 Saved multi-run summary to results/classifier_outputs/multi_run_summary.csv")
+    print("=" * 80 + "\n")

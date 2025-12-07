@@ -1,13 +1,13 @@
 domain,Baseline,Mistral,Selector,Oracle,Mistral Win Rate,Selector Gap to Oracle
 CashDepletedinATMScenario,0.4228,0.5959,0.4228,0.4228,0.0,0.0
-DecreaseInTraffic,0.4801,0.7047,0.4607,0.4521,0.3,0.0086
-DirectNormalIrradianceFromCloudStatus,1.2361,0.7047,0.9642,0.6837,0.9,0.2805
+DecreaseInTraffic,0.4801,0.7047,0.4521,0.4521,0.3,0.0
+DirectNormalIrradianceFromCloudStatus,1.2361,0.7047,0.6837,0.6837,0.9,0.0
 ElectricityIncreaseInPredictionTask,0.3112,0.3747,0.3108,0.3108,0.2,0.0
-FullCausalContextExplicitEquationBivarLinSVAR,0.6615,0.8095,0.6634,0.6513,0.4,0.0121
-OracleePredUnivariateConstraints,0.7646,0.5929,0.2998,0.2998,0.3,0.0
+FullCausalContextExplicitEquationBivarLinSVAR,0.6615,0.8095,0.6513,0.6513,0.4,0.0
+OracleePredUnivariateConstraints,0.7646,0.5929,0.3924,0.2998,0.3,0.0926
 PredictableSpikes,0.2803,0.3828,0.2803,0.2803,0.0,0.0
-STLPredTrendMultiplierWithMediumDescription,0.4035,0.4777,0.4033,0.4029,0.2,0.0004
+STLPredTrendMultiplierWithMediumDescription,0.4035,0.4777,0.4029,0.4029,0.2,0.0
 SensorMaintenance,0.5651,0.8137,0.5496,0.5496,0.2,0.0
 SolarPowerProduction,3.7325,3.3356,3.0054,3.0054,0.6,0.0
-SpeedFromLoadTask,1.1652,1.1748,1.1614,1.1611,0.8,0.0003
-UnemploymentCountyUsingSingleStateData,0.1725,0.1893,0.1637,0.1637,0.2,0.0
+SpeedFromLoadTask,1.1652,1.1748,1.163,1.1611,0.8,0.0019
+UnemploymentCountyUsingSingleStateData,0.1725,0.1893,0.1691,0.1637,0.2,0.0054

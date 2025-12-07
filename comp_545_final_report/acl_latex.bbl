@@ -1,0 +1,99 @@
+\begin{thebibliography}{19}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{Achiam et~al.(2023)Achiam, Adler, Agarwal, Ahmad, Akkaya, Aleman, Almeida, Altenschmidt, Altman, Anadkat et~al.}]{achiam2023gpt4}
+Josh Achiam, Steven Adler, Sandhini Agarwal, Lama Ahmad, Ilge Akkaya, Florencia~Leoni Aleman, Diogo Almeida, Janko Altenschmidt, Sam Altman, Shyamal Anadkat, et~al. 2023.
+\newblock Gpt-4 technical report.
+\newblock \emph{arXiv preprint arXiv:2303.08774}.
+
+\bibitem[{Ansari et~al.(2024)Ansari, Stella, Turkmen, Zhang, Mercado, Shen, Shchur, Rangapuram, Arango, Kapoor et~al.}]{ansari2024chronos}
+Abdul~Fatir Ansari, Lorenzo Stella, Caner Turkmen, Xiyuan Zhang, Pedro Mercado, Huibin Shen, Oleksandr Shchur, Syama~Sundar Rangapuram, Sebastian~Pineda Arango, Shubham Kapoor, et~al. 2024.
+\newblock Chronos: Learning the language of time series.
+\newblock \emph{arXiv preprint arXiv:2403.07815}.
+
+\bibitem[{Box et~al.(2015)Box, Jenkins, Reinsel, and Ljung}]{box2015time}
+George~EP Box, Gwilym~M Jenkins, Gregory~C Reinsel, and Greta~M Ljung. 2015.
+\newblock \emph{Time series analysis: forecasting and control}, fifth edition.
+\newblock John Wiley \& Sons.
+
+\bibitem[{Chen et~al.(2001)Chen, Petty, Skabardonis, Varaiya, and Jia}]{chen2001pems}
+Chao Chen, Karl Petty, Alexander Skabardonis, Pravin Varaiya, and Zhanfeng Jia. 2001.
+\newblock Freeway performance measurement system: mining loop detector data.
+\newblock \emph{Transportation research record}, 1748(1):96--102.
+
+\bibitem[{Chen et~al.(2023)Chen, Ma, Li, Wang, and Li}]{chen2023long}
+Zonglei Chen, Minbo Ma, Tianrui Li, Hongjun Wang, and Chongshou Li. 2023.
+\newblock Long sequence time-series forecasting with deep learning: A survey.
+\newblock \emph{Information Fusion}, 97:101819.
+
+\bibitem[{Dubey et~al.(2024)Dubey, Jauhri, Pandey, Kadian, Al-Dahle, Letman, Mathur, Schelten, Yang, Fan et~al.}]{dubey2024llama}
+Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan, et~al. 2024.
+\newblock The llama 3 herd of models.
+\newblock \emph{arXiv preprint arXiv:2407.21783}.
+
+\bibitem[{Gamella et~al.(2024)Gamella, B{\"u}hlmann, and Peters}]{gamella2024causal}
+Juan~L Gamella, Peter B{\"u}hlmann, and Jonas Peters. 2024.
+\newblock The causal chambers: Real physical systems as a testbed for ai methodology.
+\newblock \emph{arXiv preprint arXiv:2404.11341}.
+
+\bibitem[{Gardner~Jr(1985)}]{gardner1985exponential}
+Everette~S Gardner~Jr. 1985.
+\newblock Exponential smoothing: The state of the art.
+\newblock \emph{Journal of Forecasting}, 4(1):1--28.
+
+\bibitem[{Godahewa et~al.(2021)Godahewa, Bergmeir, Webb, Hyndman, and Montero-Manso}]{godahewa2021monash}
+Rakshitha Godahewa, Christoph Bergmeir, Geoffrey~I Webb, Rob~J Hyndman, and Pablo Montero-Manso. 2021.
+\newblock Monash time series forecasting archive.
+\newblock \emph{arXiv preprint arXiv:2105.06643}.
+
+\bibitem[{Gruver et~al.(2024)Gruver, Finzi, Qiu, and Wilson}]{gruver2023llm}
+Nate Gruver, Marc Finzi, Shikai Qiu, and Andrew~G Wilson. 2024.
+\newblock Large language models are zero-shot time series forecasters.
+\newblock \emph{Advances in Neural Information Processing Systems}, 36.
+
+\bibitem[{Hyndman and Athanasopoulos(2018)}]{hyndman2018forecasting}
+Rob~J Hyndman and George Athanasopoulos. 2018.
+\newblock \emph{Forecasting: principles and practice}.
+\newblock OTexts.
+
+\bibitem[{Jiang et~al.(2024)Jiang, Sablayrolles, Roux, Mensch, Savary, Bamford, Chaplot, de~las Casas, Hanna, Bressand et~al.}]{jiang2024mixtral}
+Albert~Q Jiang, Alexandre Sablayrolles, Antoine Roux, Arthur Mensch, Blanche Savary, Chris Bamford, Devendra~Singh Chaplot, Diego de~las Casas, Emma~Bou Hanna, Florian Bressand, et~al. 2024.
+\newblock \href {https://arxiv.org/abs/2401.04088} {Mixtral of experts}.
+
+\bibitem[{Liang et~al.(2024)Liang, Wen, Nie, Jiang, Jin, Song, Pan, and Wen}]{liang2024foundation}
+Yuxuan Liang, Haomin Wen, Yuqi Nie, Yushan Jiang, Ming Jin, Dongjin Song, Shirui Pan, and Qingsong Wen. 2024.
+\newblock Foundation models for time series analysis: A tutorial and survey.
+\newblock \emph{arXiv preprint arXiv:2403.14735}.
+
+\bibitem[{MacDonald et~al.(2025)}]{macdonald2025trust}
+Kyle MacDonald et~al. 2025.
+\newblock The memorization problem: Can we trust llms' economic forecasts?
+\newblock \emph{Federal Reserve Working Paper}.
+\newblock Placeholder - update with arXiv number when available.
+
+\bibitem[{Nie et~al.(2022)Nie, Nguyen, Sinthong, and Kalagnanam}]{nie2022patchtst}
+Yuqi Nie, Nam~H Nguyen, Phanwadee Sinthong, and Jayant Kalagnanam. 2022.
+\newblock A time series is worth 64 words: Long-term forecasting with transformers.
+\newblock \emph{arXiv preprint arXiv:2211.14730}.
+
+\bibitem[{Sengupta et~al.(2018)Sengupta, Xie, Lopez, Habte, Maclaurin, and Shelby}]{sengupta2018nsrdb}
+Manajit Sengupta, Yu~Xie, Anthony Lopez, Aron Habte, Galen Maclaurin, and James Shelby. 2018.
+\newblock The national solar radiation data base (nsrdb).
+\newblock \emph{Renewable and sustainable energy reviews}, 89:51--60.
+
+\bibitem[{{U.S. Bureau of Labor Statistics}(2024)}]{usbls2024}
+{U.S. Bureau of Labor Statistics}. 2024.
+\newblock \href {https://fred.stlouisfed.org/} {Unemployment rate [various locations]}.
+\newblock Accessed on 2024-08-30, retrieved from FRED.
+
+\bibitem[{{Ville de Montr{\'e}al}(2020)}]{villemtl2020}
+{Ville de Montr{\'e}al}. 2020.
+\newblock \href {https://www.donneesquebec.ca/recherche/dataset/vmtl-interventions-service-securite-incendie-montreal} {Interventions des pompiers de montr{\'e}al}.
+\newblock Updated on 2024-09-12, accessed on 2024-09-13.
+
+\bibitem[{Williams et~al.(2024)Williams, Rasul, Khorasani, Adamopoulos, Bhagwatkar, Biloš, Ghonia, Hassen, Schneider, Garg et~al.}]{williams2024context}
+Andrew~Robert Williams, Kashif Rasul, Arian Khorasani, George Adamopoulos, Rishika Bhagwatkar, Marin Biloš, Hena Ghonia, Nadhir~Vincent Hassen, Anderson Schneider, Sahil Garg, et~al. 2024.
+\newblock Context is key: A benchmark for forecasting with essential textual information.
+\newblock \emph{arXiv preprint arXiv:2410.18959}.
+
+\end{thebibliography}
