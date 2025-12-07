@@ -32,18 +32,9 @@ warnings.filterwarnings('ignore')
 plt.style.use('seaborn-v0_8-darkgrid')
 sns.set_palette("husl")
 
-# ============================================================================
-# TASK 1: LOAD TIME SERIES METADATA
-# ============================================================================
-
 def load_time_series_metadata(results_dir='results'):
     """
     Load time series metadata from all domain folders and merge into single dataframe.
-    
-    Each domain has a datasets/task_metadata.csv file with TS properties like
-    mean, std, trend, seasonality_strength, volatility, etc.
-    
-    Note: Metadata files use 'id' column, which we'll standardize to 'task_id'
     """
     print("=" * 80)
     print("TASK 1: Loading Time Series Metadata")
@@ -83,19 +74,9 @@ def load_time_series_metadata(results_dir='results'):
     
     return df_metadata
 
-
-# ============================================================================
-# TASK 2: EXTRACT CONTEXT FEATURES
-# ============================================================================
-
 def extract_context_features(context_text):
     """
     Extract features from a single context string.
-    
-    Returns dict with:
-    - Basic text statistics (length, word count, etc.)
-    - Keyword indicators (binary flags)
-    - Content type indicators
     """
     if pd.isna(context_text) or context_text == "":
         # Return zeros if no context
@@ -198,11 +179,6 @@ def load_context_features(results_dir='results'):
     
     return df_context
 
-
-# ============================================================================
-# TASK 3: ENCODE DOMAIN
-# ============================================================================
-
 def encode_domain(df):
     """
     Encode domain as numeric using LabelEncoder.
@@ -221,11 +197,6 @@ def encode_domain(df):
         print(f"   {domain}: {i} ({count} tasks)")
     
     return df, le
-
-
-# ============================================================================
-# TASK 4: DEFINE CLASSIFICATION TARGETS
-# ============================================================================
 
 def define_targets(df):
     """
@@ -270,11 +241,6 @@ def define_targets(df):
     print(f"   Positive class: {df['mistral_beats_baseline_both'].sum()} ({positive_pct_both:.1f}%)")
     
     return df
-
-
-# ============================================================================
-# TASK 5: DEFINE FEATURE SET
-# ============================================================================
 
 def define_features(df):
     """
@@ -348,10 +314,6 @@ def define_features(df):
     return all_features
 
 
-# ============================================================================
-# TASK 6 & 7: TRAIN/TEST SPLIT AND TRAIN MODEL
-# ============================================================================
-
 def train_classifier(df, feature_cols, target_col, test_size=0.2, random_state=42):
     """
     Split data and train XGBoost classifier.
@@ -409,25 +371,9 @@ def train_classifier(df, feature_cols, target_col, test_size=0.2, random_state=4
     return clf, X_train, X_test, y_train, y_test
 
 
-# ============================================================================
-# THRESHOLD OPTIMIZATION
-# ============================================================================
-
 def optimize_threshold(clf, X_train, y_train, X_test, y_test, metric='f1'):
     """
     Find optimal decision threshold that maximizes performance.
-    
-    Given class imbalance (~34% positive), default 0.5 threshold may be suboptimal.
-    This function searches for the threshold that maximizes the chosen metric.
-    
-    Args:
-        clf: Trained classifier
-        X_train, y_train: Training data
-        X_test, y_test: Test data
-        metric: Optimization metric ('f1', 'accuracy', 'oracle_benefit')
-    
-    Returns:
-        best_threshold: Optimal probability threshold
     """
     print("\n" + "=" * 80)
     print("OPTIMIZING DECISION THRESHOLD")
@@ -500,19 +446,9 @@ def optimize_threshold(clf, X_train, y_train, X_test, y_test, metric='f1'):
     return best_threshold
 
 
-# ============================================================================
-# TASK 8: EVALUATE CLASSIFIER
-# ============================================================================
-
 def evaluate_classifier(clf, X_test, y_test, threshold=0.5):
     """
     Evaluate classifier and compute metrics.
-    
-    Args:
-        clf: Trained classifier
-        X_test: Test features
-        y_test: Test labels
-        threshold: Decision threshold (default 0.5, but can be optimized)
     """
     print("\n" + "=" * 80)
     print("TASK 8: Evaluating Classifier")
@@ -547,10 +483,6 @@ def evaluate_classifier(clf, X_test, y_test, threshold=0.5):
     
     return metrics, y_pred, y_pred_proba
 
-
-# ============================================================================
-# TASK 9: GENERATE VISUALIZATIONS (UPGRADED FOR PUBLICATION)
-# ============================================================================
 
 def plot_roc_curve(y_test, y_pred_proba, output_dir='results/classifier_outputs'):
     """Generate publication-quality ROC curve with smooth styling."""
@@ -729,11 +661,6 @@ def generate_visualizations(clf, X_test, y_test, y_pred, y_pred_proba, feature_c
     
     return feature_importance_df
 
-
-# ============================================================================
-# TASK 10: POLICY COMPARISON
-# ============================================================================
-
 def evaluate_policies(df_full, clf, feature_cols, threshold=0.5, output_dir='results/classifier_outputs'):
     """
     Compare 4 policies:
@@ -741,13 +668,6 @@ def evaluate_policies(df_full, clf, feature_cols, threshold=0.5, output_dir='res
     2. Always-LLM: Always use Mistral with context
     3. XGBoost Selector: Use classifier to decide
     4. Oracle: Hindsight optimal (always pick best model)
-    
-    Args:
-        df_full: Full dataframe with all tasks
-        clf: Trained classifier
-        feature_cols: List of feature column names
-        threshold: Decision threshold for classifier predictions
-        output_dir: Directory to save outputs
     """
     print("\n" + "=" * 80)
     print("TASK 10: Policy Comparison")
@@ -912,10 +832,6 @@ def plot_policy_comparison(policy_df, output_dir='results/classifier_outputs'):
     
     print(f"✓ Saved policy comparison plot to {output_path}")
 
-# ============================================================================
-# TASK 11: PER-DOMAIN ANALYSIS
-# ============================================================================
-
 def per_domain_analysis(df_full, output_dir='results/classifier_outputs'):
     """Analyze selector performance by domain."""
     print("\n" + "=" * 80)
@@ -944,11 +860,6 @@ def per_domain_analysis(df_full, output_dir='results/classifier_outputs'):
     print(domain_analysis.to_string())
     
     return domain_analysis
-
-
-# ============================================================================
-# TASK 12: GENERATE SUMMARY REPORT
-# ============================================================================
 
 def generate_summary_report(metrics, policy_df, feature_importance_df, y_test, 
                           output_dir='results/classifier_outputs'):
@@ -1042,11 +953,6 @@ RECOMMENDATION
     print(report)
     
     return report
-
-
-# ============================================================================
-# MAIN EXECUTION
-# ============================================================================
 
 def main(random_seed=42):
     """Main execution function."""

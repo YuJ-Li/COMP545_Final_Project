@@ -23,10 +23,6 @@ import os
 import pandas as pd
 import numpy as np
 
-# ============================================
-# Configuration
-# ============================================
-
 # Model CSV files to merge
 MODEL_FILES = {
     "arima": "arima_results.csv",
@@ -41,15 +37,9 @@ MODEL_FILES = {
 KEEP_COLS = ["nmae", "da"]
 
 
-# ============================================
-# Merge Function
-# ============================================
 def merge_domain(domain_dir: str) -> pd.DataFrame:
     """
     Merge all model CSVs for a single domain.
-    
-    Returns:
-        DataFrame with columns: task_id, {model}_nmae, {model}_da, ...
     """
     
     merged = None
@@ -87,17 +77,8 @@ def merge_domain(domain_dir: str) -> pd.DataFrame:
 def compute_labels(df: pd.DataFrame) -> pd.DataFrame:
     """
     Compute all comparison labels for XGBoost training.
-    
-    Compares:
-    - Best baseline (ARIMA vs ETS)
-    - Best LLM with context (Llama vs GPT-4o)
-    - Both metrics (NMAE and DA)
     """
-    
-    # ========================================
-    # Best Baseline (ARIMA vs ETS)
-    # ========================================
-    
+
     # NMAE: lower is better, so take min
     baseline_nmae_cols = ["arima_nmae", "ets_nmae"]
     available_baseline_nmae = [c for c in baseline_nmae_cols if c in df.columns]
@@ -111,10 +92,7 @@ def compute_labels(df: pd.DataFrame) -> pd.DataFrame:
     if available_baseline_da:
         df["best_baseline_da"] = df[available_baseline_da].max(axis=1)
         df["best_baseline_da_model"] = df[available_baseline_da].idxmax(axis=1).str.replace("_da", "")
-    
-    # ========================================
-    # Best LLM with Context (Llama vs GPT-4o)
-    # ========================================
+
     
     # NMAE: lower is better, so take min
     llm_context_nmae_cols = ["llmp_with_context_nmae", "gpt4o_with_context_nmae"]
@@ -129,10 +107,7 @@ def compute_labels(df: pd.DataFrame) -> pd.DataFrame:
     if available_llm_da:
         df["best_llm_context_da"] = df[available_llm_da].max(axis=1)
         df["best_llm_context_da_model"] = df[available_llm_da].idxmax(axis=1).str.replace("_da", "")
-    
-    # ========================================
-    # Best LLM without Context (for comparison)
-    # ========================================
+
     
     llm_no_context_nmae_cols = ["llmp_no_context_nmae", "gpt4o_no_context_nmae"]
     available_llm_nc_nmae = [c for c in llm_no_context_nmae_cols if c in df.columns]
@@ -143,10 +118,7 @@ def compute_labels(df: pd.DataFrame) -> pd.DataFrame:
     available_llm_nc_da = [c for c in llm_no_context_da_cols if c in df.columns]
     if available_llm_nc_da:
         df["best_llm_no_context_da"] = df[available_llm_nc_da].max(axis=1)
-    
-    # ========================================
-    # Main Labels: LLM+Context vs Best Baseline
-    # ========================================
+
     
     # NMAE: LLM wins if lower (better)
     if "best_llm_context_nmae" in df.columns and "best_baseline_nmae" in df.columns:
@@ -163,10 +135,7 @@ def compute_labels(df: pd.DataFrame) -> pd.DataFrame:
     # Either: LLM wins on at least one metric
     if "llm_wins_nmae" in df.columns and "llm_wins_da" in df.columns:
         df["llm_wins_either"] = ((df["llm_wins_nmae"] == 1) | (df["llm_wins_da"] == 1)).astype(int)
-    
-    # ========================================
-    # Context Effectiveness Labels
-    # ========================================
+
     
     # Did context help LLM? (comparing with vs without context)
     if "best_llm_context_nmae" in df.columns and "best_llm_no_context_nmae" in df.columns:
@@ -174,10 +143,7 @@ def compute_labels(df: pd.DataFrame) -> pd.DataFrame:
     
     if "best_llm_context_da" in df.columns and "best_llm_no_context_da" in df.columns:
         df["context_helped_da"] = (df["best_llm_context_da"] > df["best_llm_no_context_da"]).astype(int)
-    
-    # ========================================
-    # Individual Model Labels (for detailed analysis)
-    # ========================================
+
     
     # Llama vs best baseline
     if "llmp_with_context_nmae" in df.columns and "best_baseline_nmae" in df.columns:
@@ -192,10 +158,7 @@ def compute_labels(df: pd.DataFrame) -> pd.DataFrame:
     
     if "gpt4o_with_context_da" in df.columns and "best_baseline_da" in df.columns:
         df["gpt4o_wins_da"] = (df["gpt4o_with_context_da"] > df["best_baseline_da"]).astype(int)
-    
-    # ========================================
-    # Overall Best Model
-    # ========================================
+
     
     all_nmae_cols = [c for c in df.columns if c.endswith("_nmae") and not c.startswith("best_")]
     if all_nmae_cols:
@@ -206,7 +169,6 @@ def compute_labels(df: pd.DataFrame) -> pd.DataFrame:
         df["best_model_da"] = df[all_da_cols].idxmax(axis=1).str.replace("_da", "")
     
     return df
-
 
 def process_domain(domain_dir: str, domain_name: str) -> bool:
     """
@@ -237,10 +199,6 @@ def process_domain(domain_dir: str, domain_name: str) -> bool:
         print(f"  [ERROR] {domain_name}: {e}")
         return False
 
-
-# ============================================
-# Main
-# ============================================
 def main(results_root: str):
     """Process all domain folders."""
     
@@ -294,7 +252,6 @@ def main(results_root: str):
     print("  - llm_wins_da: LLM beat baseline on DA?")
     print("  - llm_wins_both: LLM won on both metrics?")
     print("  - context_helped_nmae/da: Did context improve LLM?")
-
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))

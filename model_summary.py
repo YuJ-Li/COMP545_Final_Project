@@ -67,10 +67,7 @@ def generate_model_performance_summary(results_dir='Results'):
     }
     
     print("\n📊 Computing statistics...")
-    
-    # ========================================
-    # NMAE Statistics
-    # ========================================
+
     print("  - NMAE statistics (Mean, Median, Std Dev, Std Error)")
     
     n = len(df)  # Number of tasks
@@ -118,10 +115,7 @@ def generate_model_performance_summary(results_dir='Results'):
         df['gpt4o_nmae'].median(),
         df['gpt4o_nmae'].std()
     ])
-    
-    # ========================================
-    # DA (Directional Accuracy) Statistics
-    # ========================================
+
     print("  - Directional Accuracy statistics (Mean, SE, Median)")
     
     summary['Metric'].extend(['Mean DA', 'SE DA', 'Median DA'])
@@ -161,10 +155,7 @@ def generate_model_performance_summary(results_dir='Results'):
         df['gpt4o_da'].std() / np.sqrt(n),
         df['gpt4o_da'].median()
     ])
-    
-    # ========================================
-    # Win Rates (which model achieves lowest NMAE per task)
-    # ========================================
+
     print("  - Win rates (lowest NMAE per task)")
     
     # Count wins for each model
@@ -203,10 +194,7 @@ def generate_model_performance_summary(results_dir='Results'):
         100 * gpt4o_wins / total,
         gpt4o_wins
     ])
-    
-    # ========================================
-    # Improvement vs Baseline
-    # ========================================
+
     print("  - Improvement over baseline metrics")
     
     summary['Metric'].extend(['Mean Improvement (NMAE)', '% Beat Baseline'])
@@ -229,10 +217,7 @@ def generate_model_performance_summary(results_dir='Results'):
         df['gpt4o_improvement_nmae'].mean(),
         100 * df['gpt4o_beats_baseline'].mean()
     ])
-    
-    # ========================================
-    # Create DataFrame and Save
-    # ========================================
+
     summary_df = pd.DataFrame(summary)
     
     output_path = results_path / 'model_performance_summary.csv'

@@ -36,12 +36,7 @@ def mean_absolute_error(y_true, y_pred):
 def normalized_mae(y_true, y_pred):
     """
     Compute Normalized MAE
-    
     nMAE = MAE / mean(|actual|)
-    
-    Normalizes MAE by the scale of the data, enabling fair comparison
-    across domains with different scales. More robust than MAPE as it
-    avoids division by individual zero values.
     """
     mean_actual = np.mean(np.abs(y_true))
     if mean_actual == 0:
@@ -54,23 +49,6 @@ def normalized_mae(y_true, y_pred):
 def directional_accuracy(y_true, y_pred, last_value):
     """
     Compute Directional Accuracy
-    
-    Measures if forecast correctly predicts direction of change
-    compared to the last observed value
-    
-    Parameters:
-    -----------
-    y_true : np.array
-        Actual future values
-    y_pred : np.array
-        Predicted future values
-    last_value : float
-        Last value in history (reference point)
-    
-    Returns:
-    --------
-    da : float
-        Directional accuracy (0 to 1)
     """
     if len(y_true) == 0 or len(y_pred) == 0:
         return np.nan
