@@ -1,14 +1,3 @@
-"""
-XGBoost Classifier for Selective LLM Use in Time Series Forecasting
-
-This script implements a classifier that predicts when to use expensive context-aware
-LLM forecasting (Mistral 8x7B) versus cheap statistical baselines (ARIMA/ETS).
-
-Author: Kazi Ashab Rahman
-Course: COMP 545 - Advanced Machine Learning
-Project: Selective Context Use for Cost-Effective LLM Time Series Forecasting
-"""
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -50,7 +39,7 @@ def load_time_series_metadata(results_dir='results'):
         metadata_path = os.path.join(results_dir, domain, 'datasets', 'task_metadata.csv')
         
         if not os.path.exists(metadata_path):
-            print(f"⚠️  WARNING: No metadata found for {domain}")
+            print(f"  WARNING: No metadata found for {domain}")
             continue
         
         # Load metadata for this domain
@@ -153,7 +142,7 @@ def load_context_features(results_dir='results'):
         contexts_path = os.path.join(results_dir, domain, 'datasets', 'contexts.json')
         
         if not os.path.exists(contexts_path):
-            print(f"⚠️  WARNING: No contexts found for {domain}")
+            print(f"  WARNING: No contexts found for {domain}")
             continue
         
         # Load contexts for this domain
@@ -213,7 +202,7 @@ def define_targets(df):
     # Target 1: NMAE-based (already in data)
     target1_col = 'mistral_beats_baseline'
     if target1_col not in df.columns:
-        print("⚠️  WARNING: 'mistral_beats_baseline' not in data, creating it")
+        print(" WARNING: 'mistral_beats_baseline' not in data, creating it")
         df[target1_col] = (df['mistral_nmae'] < df['best_baseline_nmae']).astype(int)
     
     positive_pct = df[target1_col].mean() * 100
@@ -307,7 +296,7 @@ def define_features(df):
     print(f"   Domain: {len(domain_features)}")
     
     if len(all_features) < 10:
-        print(f"\n⚠️  WARNING: Only {len(all_features)} features found")
+        print(f"\n  WARNING: Only {len(all_features)} features found")
         print(f"   This may limit classifier performance")
         print(f"   Available columns: {list(df.columns)[:20]}...")
     
@@ -1006,7 +995,7 @@ def main(random_seed=42):
     # Check for missing values after metadata merge
     missing_after_meta = df['mean'].isna().sum() if 'mean' in df.columns else len(df)
     if missing_after_meta > 0:
-        print(f"⚠️  WARNING: {missing_after_meta} tasks have no metadata")
+        print(f"  WARNING: {missing_after_meta} tasks have no metadata")
     
     # Merge context
     df = df.merge(df_context, on='task_id', how='left', suffixes=('', '_ctx'))
@@ -1015,7 +1004,7 @@ def main(random_seed=42):
     # Check for missing values after context merge
     missing_after_ctx = df['context_char_length'].isna().sum() if 'context_char_length' in df.columns else len(df)
     if missing_after_ctx > 0:
-        print(f"⚠️  WARNING: {missing_after_ctx} tasks have no context features")
+        print(f" WARNING: {missing_after_ctx} tasks have no context features")
     
     print(f"\n✓ Final dataframe shape: {df.shape}")
     print(f"✓ Columns: {len(df.columns)}")

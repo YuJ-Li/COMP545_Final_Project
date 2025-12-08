@@ -297,7 +297,7 @@ def main():
     # Display key insights
     display_key_insights(summary_df)
     
-    print("\n✅ Model performance summary complete!")
+    print("\n Model performance summary complete!")
     print("\nOutput file: Results/model_performance_summary.csv")
     print()
 

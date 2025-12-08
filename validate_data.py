@@ -56,7 +56,7 @@ def validate_compiled_comparison(filepath='results/compiled_comparison.csv'):
     # Check for missing values
     missing_counts = df[required_cols].isnull().sum()
     if missing_counts.sum() > 0:
-        print(f"\n⚠️  WARNING: Missing values detected:")
+        print(f"\n  WARNING: Missing values detected:")
         for col, count in missing_counts[missing_counts > 0].items():
             print(f"   {col}: {count} missing values")
     else:
@@ -69,11 +69,11 @@ def validate_compiled_comparison(filepath='results/compiled_comparison.csv'):
         print(f"   Positive class: {df['mistral_beats_baseline'].sum()} ({positive_pct:.1f}%)")
         
         if positive_pct < 20:
-            print(f"   ⚠️  WARNING: Very low positive class rate - classifier may struggle")
+            print(f"  WARNING: Very low positive class rate - classifier may struggle")
         elif positive_pct > 80:
-            print(f"   ⚠️  WARNING: Very high positive class rate - classifier may struggle")
+            print(f"  WARNING: Very high positive class rate - classifier may struggle")
     else:
-        print(f"\n⚠️  Target 'mistral_beats_baseline' not found (will be created)")
+        print(f"\n Target 'mistral_beats_baseline' not found (will be created)")
     
     # Check domains
     print(f"\n✓ Domains found: {df['domain'].nunique()}")
@@ -119,7 +119,7 @@ def validate_domain_data(results_dir='results'):
             
             if len(available) < len(expected_features):
                 missing = [f for f in expected_features if f not in df_meta.columns]
-                print(f"  ⚠️  Missing: {missing}")
+                print(f"    Missing: {missing}")
             
             metadata_ok += 1
         else:
@@ -138,7 +138,7 @@ def validate_domain_data(results_dir='results'):
             print(f"  Sample context length: {len(sample_context)} chars")
             
             if len(sample_context) < 10:
-                print(f"  ⚠️  WARNING: Very short context - may not be informative")
+                print(f"    WARNING: Very short context - may not be informative")
             
             contexts_ok += 1
         else:
@@ -150,7 +150,7 @@ def validate_domain_data(results_dir='results'):
     print(f"  Domains with contexts: {contexts_ok}/{len(domain_folders)}")
     
     if metadata_ok < len(domain_folders) or contexts_ok < len(domain_folders):
-        print(f"\n⚠️  WARNING: Some domains are missing data")
+        print(f"\n  WARNING: Some domains are missing data")
         print(f"   Classifier will still run but may have reduced accuracy")
     
     return True
@@ -175,7 +175,7 @@ def validate_output_directory(output_dir='results/classifier_outputs'):
             print(f"✗ Directory is NOT writable - check permissions")
             return False
     else:
-        print(f"⚠️  Output directory doesn't exist: {output_dir}")
+        print(f"  WARNING: Output directory doesn't exist: {output_dir}")
         print(f"   Will be created automatically")
         
         # Try to create it
@@ -205,15 +205,15 @@ def estimate_data_size():
         print(f"✓ Expected test set: {n_test} tasks")
         
         if n_train < 50:
-            print(f"\n⚠️  WARNING: Very small training set ({n_train} tasks)")
+            print(f"\n WARNING: Very small training set ({n_train} tasks)")
             print(f"   Consider collecting more data for better classifier performance")
         
         if n_test < 20:
-            print(f"\n⚠️  WARNING: Very small test set ({n_test} tasks)")
+            print(f"\n WARNING: Very small test set ({n_test} tasks)")
             print(f"   Evaluation metrics may be noisy")
         
     except:
-        print(f"⚠️  Could not load compiled comparison file")
+        print(f" WARNING: Could not load compiled comparison file")
     
     return True
 

@@ -87,7 +87,7 @@ for domain in "${domains[@]}"; do
     python3 run_mistral_standalone.py --domain "$domain" --no-context
     
     if [ $? -ne 0 ]; then
-        echo "⚠️  WARNING: Failed to process $domain (no context)"
+        echo "  WARNING: Failed to process $domain (no context)"
         echo "    Continuing to next domain..."
     else
         echo "✓ Successfully completed $domain (no context)"

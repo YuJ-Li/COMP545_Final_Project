@@ -143,4 +143,4 @@ if __name__ == "__main__":
     
     print("Creating publication-ready pie chart...")
     create_publication_pie_chart(results_dir)
-    print("\n✅ Done!")
+    print("\n Done!")
